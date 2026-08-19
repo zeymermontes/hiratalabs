@@ -62,8 +62,12 @@ export default async function UsagePage({
     db.select().from(aiModels),
   ]);
 
-  const priceOf = (provider: string, model: string | null) =>
-    prices.find((p) => p.provider === provider && p.model === model);
+  // A model saved without a price would otherwise render as a genuine $0.00.
+  const priceOf = (provider: string, model: string | null) => {
+    const found = prices.find((p) => p.provider === provider && p.model === model);
+    if (!found) return undefined;
+    return found.inputPriceMicros > 0 || found.outputPriceMicros > 0 ? found : undefined;
+  };
 
   type Line = {
     siteId: string; siteName: string; siteSlug: string;

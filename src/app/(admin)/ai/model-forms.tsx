@@ -16,19 +16,43 @@ export const PROVIDER_LABELS: Record<string, string> = {
 };
 
 /**
- * Anthropic publishes its list prices, so they can be prefilled. Every other
- * provider's price has to be typed in — inventing one would quietly bill wrong.
+ * Published list prices, so selecting a model fills them in. Only providers
+ * whose prices could be verified are here — an invented price bills wrong, and
+ * these go stale on their own, so the form always says where they came from.
  */
-const ANTHROPIC_PRICES: Record<string, [number, number]> = {
-  "claude-fable-5": [10, 50],
-  "claude-mythos-5": [10, 50],
-  "claude-opus-5": [5, 25],
-  "claude-opus-4-8": [5, 25],
-  "claude-opus-4-7": [5, 25],
-  "claude-opus-4-6": [5, 25],
-  "claude-sonnet-5": [3, 15],
-  "claude-sonnet-4-6": [3, 15],
-  "claude-haiku-4-5": [1, 5],
+const PRICE_BOOK: Record<string, { verified: string; pricing: string; note?: string; models: Record<string, [number, number]> }> = {
+  anthropic: {
+    verified: "2026-06",
+    pricing: "https://www.anthropic.com/pricing",
+    models: {
+      "claude-fable-5": [10, 50],
+      "claude-mythos-5": [10, 50],
+      "claude-opus-5": [5, 25],
+      "claude-opus-4-8": [5, 25],
+      "claude-opus-4-7": [5, 25],
+      "claude-opus-4-6": [5, 25],
+      "claude-sonnet-5": [3, 15],
+      "claude-sonnet-4-6": [3, 15],
+      "claude-haiku-4-5": [1, 5],
+    },
+  },
+  deepseek: {
+    verified: "2026-08",
+    pricing: "https://api-docs.deepseek.com/quick_start/pricing",
+    note: "Precio de hora pico. Fuera de pico DeepSeek cobra la mitad, así que esto nunca subestima el consumo.",
+    models: {
+      "deepseek-v4-flash": [0.44, 1.32],
+      "deepseek-v4-pro": [1.32, 3.96],
+    },
+  },
+};
+
+const PRICING_PAGES: Record<string, string> = {
+  anthropic: "https://www.anthropic.com/pricing",
+  openai: "https://openai.com/api/pricing/",
+  google: "https://ai.google.dev/pricing",
+  groq: "https://groq.com/pricing/",
+  deepseek: "https://api-docs.deepseek.com/quick_start/pricing",
 };
 
 export function AddModelForm({ providersWithKeys }: { providersWithKeys: string[] }) {
@@ -43,13 +67,21 @@ export function AddModelForm({ providersWithKeys }: { providersWithKeys: string[
   const [manual, setManual] = useState(false);
   const [model, setModel] = useState("");
   const [prices, setPrices] = useState({ input: "0", output: "0" });
+  const [prefilled, setPrefilled] = useState<string | null>(null);
 
   const hasKey = providersWithKeys.includes(provider);
+  const book = PRICE_BOOK[provider];
 
   function chooseModel(value: string) {
     setModel(value);
-    const known = provider === "anthropic" ? ANTHROPIC_PRICES[value] : undefined;
-    if (known) setPrices({ input: String(known[0]), output: String(known[1]) });
+    const known = book?.models[value];
+    if (known) {
+      setPrices({ input: String(known[0]), output: String(known[1]) });
+      setPrefilled(book.verified);
+    } else {
+      setPrices({ input: "0", output: "0" });
+      setPrefilled(null);
+    }
   }
 
   function load() {
@@ -68,6 +100,8 @@ export function AddModelForm({ providersWithKeys }: { providersWithKeys: string[
     setModel("");
     setLoadError(null);
     setManual(false);
+    setPrices({ input: "0", output: "0" });
+    setPrefilled(null);
     if (!providersWithKeys.includes(provider)) return;
 
     let cancelled = false;
@@ -137,6 +171,25 @@ export function AddModelForm({ providersWithKeys }: { providersWithKeys: string[
         </Field>
       </div>
 
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+        {prefilled ? (
+          <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-800">
+            Precio de lista verificado en {prefilled} — confírmalo contra tu cuenta.
+          </span>
+        ) : model ? (
+          <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-amber-800">
+            No tengo precio verificado de este modelo. Captúralo o el consumo se va a calcular en cero.
+          </span>
+        ) : null}
+        {book?.note && prefilled ? <span className="text-neutral-500">{book.note}</span> : null}
+        <a
+          href={PRICING_PAGES[provider]} target="_blank" rel="noreferrer"
+          className="text-neutral-500 underline-offset-2 hover:text-neutral-800 hover:underline"
+        >
+          Ver precios de {PROVIDER_LABELS[provider]} ↗
+        </a>
+      </div>
+
       <div className="flex flex-wrap items-center gap-4">
         <button type="button" onClick={load} disabled={loading || !hasKey} className="btn-secondary">
           {loading ? "Consultando…" : available ? "Actualizar lista" : "Reintentar lista"}
@@ -189,10 +242,18 @@ export function ModelRow({
                 por defecto
               </span>
             ) : null}
+            {inputPrice === 0 && outputPrice === 0 ? (
+              <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+                sin precio
+              </span>
+            ) : null}
           </div>
           <p className="mt-0.5 text-xs text-neutral-500">
             {PROVIDER_LABELS[provider] ?? provider}
-            {label ? ` · ${label}` : ""} · ${inputPrice.toFixed(2)} entrada / ${outputPrice.toFixed(2)} salida por 1M
+            {label ? ` · ${label}` : ""} ·{" "}
+            {inputPrice === 0 && outputPrice === 0
+              ? "su consumo se calcula en cero hasta que captures el precio"
+              : `$${inputPrice.toFixed(2)} entrada / $${outputPrice.toFixed(2)} salida por 1M`}
           </p>
         </div>
 

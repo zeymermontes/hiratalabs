@@ -54,7 +54,11 @@ export async function GET(req: Request) {
 
   const lines = [header.join(",")];
   for (const r of rows) {
-    const price = prices.find((p) => p.provider === r.provider && p.model === r.model);
+    const priceRow = prices.find((p) => p.provider === r.provider && p.model === r.model);
+    // A zero price is missing configuration, not a free model.
+    const price = priceRow && (priceRow.inputPriceMicros > 0 || priceRow.outputPriceMicros > 0)
+      ? priceRow
+      : undefined;
     const cost = price
       ? costOf(r.inputTokens, r.outputTokens, price.inputPriceMicros, price.outputPriceMicros)
       : null;
