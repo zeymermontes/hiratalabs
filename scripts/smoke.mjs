@@ -13,6 +13,7 @@ const { publicSiteConfig } = await import("../src/lib/settings.ts");
 const { slugFromHost, isAdminHost, normalizeHost } = await import("../src/lib/host.ts");
 const { SITE_RUNTIME } = await import("../src/lib/runtime.ts");
 const { CHAT_RUNTIME } = await import("../src/lib/chat-widget.ts");
+const { costOf, toMicros, fromMicros, formatUsd } = await import("../src/lib/ai/pricing.ts");
 
 let passed = 0;
 function test(name, fn) {
@@ -164,6 +165,34 @@ test("chat script is only injected when the chat is on", () => {
     },
   });
   assert.ok(on.includes("__site_chat_runtime__"));
+});
+
+/* ------------------------------ pricing --------------------------------- */
+
+test("prices survive the round-trip through integer storage", () => {
+  for (const price of [0, 0.27, 1, 3, 5, 15, 25, 0.075]) {
+    assert.equal(fromMicros(toMicros(price)), price);
+  }
+});
+
+test("computes the cost of a call", () => {
+  // $5 per 1M input, $25 per 1M output
+  const cost = costOf(1200, 340, toMicros(5), toMicros(25));
+  assert.equal(cost.toFixed(6), "0.014500");
+});
+
+test("scales to whole millions without drift", () => {
+  assert.equal(costOf(1_000_000, 1_000_000, toMicros(5), toMicros(25)), 30);
+});
+
+test("treats missing token counts as zero", () => {
+  assert.equal(costOf(undefined, null, toMicros(5), toMicros(25)), 0);
+});
+
+test("formats small amounts without collapsing to zero", () => {
+  assert.equal(formatUsd(0), "$0.00");
+  assert.equal(formatUsd(0.0001), "$0.0001");
+  assert.equal(formatUsd(12.5), "$12.50");
 });
 
 console.log(`\n${passed} checks passed`);

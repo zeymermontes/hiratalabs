@@ -1,8 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { jsonSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/json-schema";
-import { buildPrompt, SYSTEM_PROMPT, type QuestionRequest } from "./prompt";
+import { buildPrompt, JSON_INSTRUCTION, SYSTEM_PROMPT, type QuestionRequest } from "./prompt";
 
-export type ProviderId = "anthropic" | "openai" | "google" | "groq";
+export type ProviderId = "anthropic" | "openai" | "google" | "groq" | "deepseek";
 
 export const PROVIDERS: Record<ProviderId, { label: string; defaultModel: string; modelHint: string; keysUrl: string }> = {
   anthropic: {
@@ -28,6 +28,12 @@ export const PROVIDERS: Record<ProviderId, { label: string; defaultModel: string
     defaultModel: "",
     modelHint: "Escribe el modelo exacto, tal como aparece en tu cuenta.",
     keysUrl: "https://console.groq.com/keys",
+  },
+  deepseek: {
+    label: "DeepSeek",
+    defaultModel: "",
+    modelHint: "Escribe el modelo exacto, tal como aparece en tu cuenta.",
+    keysUrl: "https://platform.deepseek.com/api_keys",
   },
 };
 
@@ -127,13 +133,12 @@ async function askOpenAiCompatible(
     model,
     max_completion_tokens: 600,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: SYSTEM_PROMPT + JSON_INSTRUCTION },
       { role: "user", content: buildPrompt(req) },
     ],
-    response_format: {
-      type: "json_schema",
-      json_schema: { name: "followup_questions", strict: true, schema: JSON_SCHEMA },
-    },
+    // Plain JSON mode rather than json_schema: OpenAI, Groq and DeepSeek all
+    // support it, and the answer is parsed defensively either way.
+    response_format: { type: "json_object" },
   });
 
   const choices = data.choices as Array<{ message?: { content?: string } }> | undefined;
@@ -185,6 +190,8 @@ export async function askForQuestions(
       return askOpenAiCompatible("https://api.openai.com/v1/chat/completions", apiKey, resolved, req);
     case "groq":
       return askOpenAiCompatible("https://api.groq.com/openai/v1/chat/completions", apiKey, resolved, req);
+    case "deepseek":
+      return askOpenAiCompatible("https://api.deepseek.com/chat/completions", apiKey, resolved, req);
     case "google":
       return askGoogle(apiKey, resolved, req);
   }

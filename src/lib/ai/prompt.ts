@@ -36,3 +36,10 @@ ${req.description.trim().slice(0, 2000)}
 
 Propón como máximo 2 preguntas de seguimiento para poder cotizar.`;
 }
+
+/** Appended for providers that only offer generic JSON mode. */
+export const JSON_INSTRUCTION = `
+
+Responde únicamente con un objeto JSON con esta forma exacta:
+{"questions": ["primera pregunta", "segunda pregunta"]}
+Si no hace falta preguntar nada, responde {"questions": []}.`;

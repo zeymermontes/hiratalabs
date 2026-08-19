@@ -1,9 +1,12 @@
 import { desc, eq, gte, sql } from "drizzle-orm";
+import Link from "next/link";
 import { db } from "@/lib/db";
-import { aiKeys, aiUsage, sites } from "@/lib/db/schema";
+import { aiKeys, aiModels, aiUsage, sites } from "@/lib/db/schema";
 import { encryptionConfigured } from "@/lib/crypto";
 import { Empty, PageHeader } from "@/components/ui";
 import { AddKeyForm, KeyRow } from "./key-forms";
+import { AddModelForm, ModelRow } from "./model-forms";
+import { fromMicros } from "@/lib/ai/pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +15,9 @@ export default async function AiKeysPage() {
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
 
-  const [keys, usage] = await Promise.all([
+  const [keys, models, usage] = await Promise.all([
     db.select().from(aiKeys).orderBy(desc(aiKeys.createdAt)),
+    db.select().from(aiModels).orderBy(aiModels.provider, desc(aiModels.isDefault)),
     db
       .select({
         siteName: sites.name,
@@ -71,9 +75,44 @@ export default async function AiKeysPage() {
         )}
 
         <section>
+          <h2 className="mb-1 text-sm font-semibold text-neutral-900">Modelos y precios</h2>
+          <p className="hint mb-3">
+            El modelo marcado por defecto es el que usan los sitios que no eligen uno propio. Los precios
+            alimentan el cálculo de consumo por sitio.
+          </p>
+          <div className="space-y-4">
+            <AddModelForm />
+            {models.length === 0 ? (
+              <Empty
+                title="Sin modelos configurados"
+                body="Agrega al menos uno por proveedor. Sin un modelo por defecto, los sitios que no especifiquen uno no podrán usar el chat."
+              />
+            ) : (
+              <div className="card divide-y divide-neutral-200">
+                {models.map((m) => (
+                  <ModelRow
+                    key={m.id}
+                    id={m.id}
+                    provider={m.provider}
+                    model={m.model}
+                    label={m.label}
+                    inputPrice={fromMicros(m.inputPriceMicros)}
+                    outputPrice={fromMicros(m.outputPriceMicros)}
+                    isDefault={m.isDefault}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section>
           <h2 className="mb-3 text-sm font-semibold text-neutral-900">Consumo de este mes</h2>
           {usage.length === 0 ? (
-            <p className="hint">Todavía no hay llamadas registradas.</p>
+            <p className="hint">
+              Todavía no hay llamadas registradas. El detalle con tokens y costos vive en{" "}
+              <Link href="/usage" className="underline underline-offset-2">Consumo</Link>.
+            </p>
           ) : (
             <div className="card divide-y divide-neutral-200">
               {usage.map((u) => (

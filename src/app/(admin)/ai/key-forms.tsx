@@ -9,6 +9,7 @@ const PROVIDERS = [
   { id: "openai", label: "OpenAI", keys: "https://platform.openai.com/api-keys" },
   { id: "google", label: "Google (Gemini)", keys: "https://aistudio.google.com/apikey" },
   { id: "groq", label: "Groq", keys: "https://console.groq.com/keys" },
+  { id: "deepseek", label: "DeepSeek", keys: "https://platform.deepseek.com/api_keys" },
 ];
 
 export function AddKeyForm() {

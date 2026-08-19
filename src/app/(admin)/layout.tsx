@@ -6,6 +6,7 @@ import { signOut } from "@/app/login/actions";
 const NAV = [
   { href: "/", label: "Sitios" },
   { href: "/ai", label: "Llaves de IA" },
+  { href: "/usage", label: "Consumo" },
   { href: "/guide", label: "Guía para IA" },
 ];
 

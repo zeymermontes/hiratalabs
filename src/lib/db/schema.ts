@@ -153,7 +153,7 @@ export type Submission = typeof submissions.$inferSelect;
 
 /* ------------------------- AI quote-assistant chat ------------------------ */
 
-export const aiProvider = pgEnum("ai_provider", ["anthropic", "openai", "google", "groq"]);
+export const aiProvider = pgEnum("ai_provider", ["anthropic", "openai", "google", "groq", "deepseek"]);
 export const aiKeyMode = pgEnum("ai_key_mode", ["platform", "own"]);
 
 /** Platform-wide provider credentials, encrypted at rest. */
@@ -169,6 +169,25 @@ export const aiKeys = pgTable("ai_keys", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   providerIdx: index("ai_keys_provider_idx").on(t.provider),
+}));
+
+/**
+ * The models available per provider, with the price used to bill sites back.
+ * Exactly one per provider is the default, used by sites that don't pin one.
+ */
+export const aiModels = pgTable("ai_models", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  provider: aiProvider("provider").notNull(),
+  /** The exact model id sent to the provider. */
+  model: text("model").notNull(),
+  label: text("label"),
+  /** USD per 1M tokens, stored in millionths to avoid float drift. */
+  inputPriceMicros: bigint("input_price_micros", { mode: "number" }).notNull().default(0),
+  outputPriceMicros: bigint("output_price_micros", { mode: "number" }).notNull().default(0),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniq: uniqueIndex("ai_models_provider_model_idx").on(t.provider, t.model),
 }));
 
 /** Per-site chat configuration. Absent row means the chat is off. */
@@ -209,4 +228,5 @@ export const aiUsage = pgTable("ai_usage", {
 }));
 
 export type AiKey = typeof aiKeys.$inferSelect;
+export type AiModel = typeof aiModels.$inferSelect;
 export type SiteChat = typeof siteChat.$inferSelect;

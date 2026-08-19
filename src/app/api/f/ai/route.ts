@@ -1,5 +1,6 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
+import { resolveModel } from "@/lib/ai/models";
 import { askForQuestions, type ProviderId } from "@/lib/ai/providers";
 import { decryptSecret } from "@/lib/crypto";
 import { db } from "@/lib/db";
@@ -92,19 +93,26 @@ export async function POST(req: NextRequest) {
     return skip();
   }
 
+  // The site's own model wins; otherwise the provider's configured default.
+  const model = await resolveModel(chat.provider, chat.model);
+  if (!model) {
+    await record(site.id, chat.provider, null, false, "no_model_configured");
+    return skip();
+  }
+
   try {
-    const result = await askForQuestions(chat.provider, apiKey, chat.model ?? "", {
+    const result = await askForQuestions(chat.provider, apiKey, model, {
       service,
       description,
       businessContext: chat.businessContext ?? "",
       siteName: site.name,
     });
-    await record(site.id, chat.provider, chat.model, true, undefined, result.inputTokens, result.outputTokens);
+    await record(site.id, chat.provider, model, true, undefined, result.inputTokens, result.outputTokens);
     return NextResponse.json({ questions: result.questions });
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown_error";
     console.error(`[ai] ${site.slug}: ${message}`);
-    await record(site.id, chat.provider, chat.model, false, message);
+    await record(site.id, chat.provider, model, false, message);
     return skip();
   }
 }

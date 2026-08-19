@@ -2,7 +2,7 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { aiKeys, aiUsage, siteChat, sites } from "@/lib/db/schema";
+import { aiKeys, aiModels, aiUsage, siteChat, sites } from "@/lib/db/schema";
 import { ChatForm } from "./chat-form";
 
 export const dynamic = "force-dynamic";
@@ -16,9 +16,11 @@ export default async function SiteChatPage({ params }: { params: Promise<{ id: s
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
 
-  const [[chat], keys, [{ used }]] = await Promise.all([
+  const [[chat], keys, models, [{ used }]] = await Promise.all([
     db.select().from(siteChat).where(eq(siteChat.siteId, id)),
     db.select({ provider: aiKeys.provider }).from(aiKeys),
+    db.select({ provider: aiModels.provider, model: aiModels.model, isDefault: aiModels.isDefault })
+      .from(aiModels).orderBy(aiModels.model),
     db
       .select({ used: sql<number>`count(*) filter (where ${aiUsage.ok})::int` })
       .from(aiUsage)
@@ -48,6 +50,7 @@ export default async function SiteChatPage({ params }: { params: Promise<{ id: s
       <ChatForm
         siteId={id}
         availableProviders={Array.from(new Set(keys.map((k) => k.provider)))}
+        models={models}
         values={{
           enabled: chat?.enabled ?? false,
           replacesForm: chat?.replacesForm ?? false,

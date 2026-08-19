@@ -47,7 +47,8 @@ Puntos clave:
 1. Crea el proyecto.
 2. **SQL Editor** → ejecuta en orden [`drizzle/0000_init.sql`](drizzle/0000_init.sql),
    [`drizzle/0001_drop_global_settings.sql`](drizzle/0001_drop_global_settings.sql) y
-   [`drizzle/0002_ai_chat.sql`](drizzle/0002_ai_chat.sql).
+   [`drizzle/0002_ai_chat.sql`](drizzle/0002_ai_chat.sql) y
+   [`drizzle/0003_ai_models.sql`](drizzle/0003_ai_models.sql).
 3. **Storage** → crea un bucket llamado `landings`, **privado**.
 4. **Project Settings → API** → copia `URL`, `anon key` y `service_role key`.
 5. **Project Settings → Database → Connection string** → pestaña **Session pooler** →
@@ -157,9 +158,17 @@ al modelo a media conversación, que propone hasta dos preguntas de seguimiento 
 que describió el visitante. Si esa llamada falla, tarda o se agota el tope mensual, el
 chat continúa con las preguntas fijas y el visitante no ve ningún error.
 
-Las llaves de proveedor se guardan cifradas con AES-256-GCM usando `ENCRYPTION_KEY`.
-Cada sitio elige entre la llave de la plataforma (**Llaves de IA**) o una del cliente,
-que se factura a su cuenta.
+Proveedores soportados: Anthropic, OpenAI, Google, Groq y DeepSeek. Las llaves se
+guardan cifradas con AES-256-GCM usando `ENCRYPTION_KEY`. Cada sitio elige entre la
+llave de la plataforma (**Llaves de IA**) o una del cliente, que se factura a su cuenta.
+
+En **Llaves de IA** también se da de alta el catálogo de modelos con su precio por
+millón de tokens. Uno por proveedor queda marcado como predeterminado: los sitios que
+no eligen modelo propio usan ese.
+
+**Consumo** muestra, por mes y por sitio, las llamadas, los tokens de entrada y salida
+y el costo estimado con esos precios, con desglose por modelo y exportación a CSV para
+facturar. Los precios se capturan a mano — no se consultan solos.
 
 Límites: 6 llamadas por IP cada 10 minutos, más un tope mensual por sitio configurable
 (500 por defecto). El consumo se ve por sitio y en la vista global.

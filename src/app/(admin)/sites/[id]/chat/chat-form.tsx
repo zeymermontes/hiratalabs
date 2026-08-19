@@ -5,11 +5,14 @@ import { saveSiteChat, type ActionState } from "../../../actions";
 import { Field } from "@/components/ui";
 
 const PROVIDERS = [
-  { id: "anthropic", label: "Anthropic (Claude)", hint: "Se usa claude-opus-5 si dejas el modelo vacío." },
-  { id: "openai", label: "OpenAI", hint: "Escribe el modelo exacto tal como aparece en tu cuenta." },
-  { id: "google", label: "Google (Gemini)", hint: "Escribe el modelo exacto tal como aparece en tu cuenta." },
-  { id: "groq", label: "Groq", hint: "Escribe el modelo exacto tal como aparece en tu cuenta." },
+  { id: "anthropic", label: "Anthropic (Claude)" },
+  { id: "openai", label: "OpenAI" },
+  { id: "google", label: "Google (Gemini)" },
+  { id: "groq", label: "Groq" },
+  { id: "deepseek", label: "DeepSeek" },
 ];
+
+export type ModelOption = { provider: string; model: string; isDefault: boolean };
 
 export type ChatValues = {
   enabled: boolean;
@@ -26,19 +29,21 @@ export type ChatValues = {
 };
 
 export function ChatForm({
-  siteId, values, availableProviders,
+  siteId, values, availableProviders, models,
 }: {
   siteId: string;
   values: ChatValues;
   availableProviders: string[];
+  models: ModelOption[];
 }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(saveSiteChat, {});
   const [enabled, setEnabled] = useState(values.enabled);
   const [keyMode, setKeyMode] = useState(values.keyMode);
   const [provider, setProvider] = useState(values.provider);
 
-  const meta = PROVIDERS.find((p) => p.id === provider);
   const platformHasKey = availableProviders.includes(provider);
+  const forProvider = models.filter((m) => m.provider === provider);
+  const fallback = forProvider.find((m) => m.isDefault);
 
   return (
     <form action={action} className="space-y-6">
@@ -92,8 +97,22 @@ export function ChatForm({
               {PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
             </select>
           </Field>
-          <Field label="Modelo" hint={meta?.hint}>
-            <input name="model" defaultValue={values.model} placeholder="claude-opus-5" className="input" />
+          <Field
+            label="Modelo"
+            hint={
+              fallback
+                ? `Sin elegir uno, este sitio usa el predeterminado del proveedor (${fallback.model}).`
+                : "Este proveedor no tiene modelos configurados todavía."
+            }
+          >
+            <select name="model" defaultValue={values.model} className="input">
+              <option value="">
+                {fallback ? `Predeterminado — ${fallback.model}` : "Predeterminado (ninguno configurado)"}
+              </option>
+              {forProvider.map((m) => (
+                <option key={m.model} value={m.model}>{m.model}</option>
+              ))}
+            </select>
           </Field>
         </div>
 
@@ -135,6 +154,13 @@ export function ChatForm({
                 <input name="ownSecret" type="password" autoComplete="off" placeholder="sk-…" className="input" />
               </Field>
             </div>
+          ) : null}
+
+          {enabled && forProvider.length === 0 ? (
+            <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              Ese proveedor no tiene ningún modelo dado de alta. Agrégalo en <strong>Llaves de IA</strong> o
+              el chat no va a poder hacer la llamada.
+            </p>
           ) : null}
 
           {enabled && keyMode === "platform" && !platformHasKey ? (

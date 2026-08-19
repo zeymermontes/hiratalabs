@@ -358,11 +358,11 @@ export async function addAiKey(_prev: ActionState, form: FormData): Promise<Acti
     return { error: "Falta ENCRYPTION_KEY (mínimo 32 caracteres) para poder guardar llaves." };
   }
 
-  const provider = String(form.get("provider") ?? "") as "anthropic" | "openai" | "google" | "groq";
+  const provider = String(form.get("provider") ?? "") as "anthropic" | "openai" | "google" | "groq" | "deepseek";
   const label = String(form.get("label") ?? "").trim() || "Sin nombre";
   const secret = String(form.get("secret") ?? "").trim();
 
-  if (!["anthropic", "openai", "google", "groq"].includes(provider)) return { error: "Proveedor inválido." };
+  if (!["anthropic", "openai", "google", "groq", "deepseek"].includes(provider)) return { error: "Proveedor inválido." };
   if (secret.length < 12) return { error: "Esa llave se ve incompleta." };
 
   const existing = await db.select().from(aiKeys).where(eq(aiKeys.provider, provider));
@@ -388,7 +388,7 @@ export async function setDefaultAiKey(id: string, provider: string) {
   await requireAdmin();
   const { aiKeys } = await import("@/lib/db/schema");
   await db.update(aiKeys).set({ isDefault: false })
-    .where(eq(aiKeys.provider, provider as "anthropic" | "openai" | "google" | "groq"));
+    .where(eq(aiKeys.provider, provider as "anthropic" | "openai" | "google" | "groq" | "deepseek"));
   await db.update(aiKeys).set({ isDefault: true }).where(eq(aiKeys.id, id));
   revalidatePath("/ai");
 }
@@ -401,7 +401,7 @@ export async function saveSiteChat(_prev: ActionState, form: FormData): Promise<
   const siteId = String(form.get("siteId"));
   const enabled = form.get("enabled") === "on";
   const keyMode = (String(form.get("keyMode") ?? "platform") === "own" ? "own" : "platform") as "platform" | "own";
-  const provider = String(form.get("provider") ?? "anthropic") as "anthropic" | "openai" | "google" | "groq";
+  const provider = String(form.get("provider") ?? "anthropic") as "anthropic" | "openai" | "google" | "groq" | "deepseek";
   const model = String(form.get("model") ?? "").trim() || null;
   const newSecret = String(form.get("ownSecret") ?? "").trim();
 
@@ -445,8 +445,13 @@ export async function saveSiteChat(_prev: ActionState, form: FormData): Promise<
         return { error: `No hay ninguna llave de plataforma para ese proveedor. Agrégala en "Llaves de IA".` };
       }
     }
-    if (provider !== "anthropic" && !model) {
-      return { error: "Para ese proveedor tienes que escribir el modelo exacto." };
+    const { aiModels } = await import("@/lib/db/schema");
+    const catalogue = await db.select().from(aiModels).where(eq(aiModels.provider, provider));
+    if (catalogue.length === 0) {
+      return { error: `Ese proveedor no tiene modelos dados de alta. Agrégalos en "Llaves de IA".` };
+    }
+    if (!model && !catalogue.some((m) => m.isDefault)) {
+      return { error: "Ese proveedor no tiene modelo predeterminado. Elige uno para este sitio." };
     }
   }
 
@@ -456,4 +461,79 @@ export async function saveSiteChat(_prev: ActionState, form: FormData): Promise<
 
   await refreshSite(siteId);
   return { ok: true, message: enabled ? "Chat activado y guardado." : "Guardado. El chat está apagado." };
+}
+
+/* ------------------------ AI model catalogue ---------------------------- */
+
+export async function addAiModel(_prev: ActionState, form: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const { aiModels } = await import("@/lib/db/schema");
+  const { toMicros } = await import("@/lib/ai/pricing");
+
+  const provider = String(form.get("provider") ?? "") as
+    "anthropic" | "openai" | "google" | "groq" | "deepseek";
+  const model = String(form.get("model") ?? "").trim();
+  const label = String(form.get("label") ?? "").trim() || null;
+  const inputPrice = Number(form.get("inputPrice") ?? 0);
+  const outputPrice = Number(form.get("outputPrice") ?? 0);
+  const makeDefault = form.get("isDefault") === "on";
+
+  if (!model) return { error: "Escribe el identificador exacto del modelo." };
+  if (inputPrice < 0 || outputPrice < 0) return { error: "Los precios no pueden ser negativos." };
+
+  const existing = await db.select().from(aiModels).where(eq(aiModels.provider, provider));
+  if (existing.some((m) => m.model === model)) {
+    return { error: "Ese modelo ya está en la lista." };
+  }
+
+  // The first model of a provider becomes its default whether or not it is asked for.
+  const isDefault = makeDefault || existing.length === 0;
+  if (isDefault) {
+    await db.update(aiModels).set({ isDefault: false }).where(eq(aiModels.provider, provider));
+  }
+
+  await db.insert(aiModels).values({
+    provider, model, label,
+    inputPriceMicros: toMicros(inputPrice),
+    outputPriceMicros: toMicros(outputPrice),
+    isDefault,
+  });
+
+  revalidatePath("/ai");
+  revalidatePath("/usage");
+  return { ok: true, message: "Modelo agregado." };
+}
+
+export async function updateAiModelPrice(_prev: ActionState, form: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const { aiModels } = await import("@/lib/db/schema");
+  const { toMicros } = await import("@/lib/ai/pricing");
+
+  const id = String(form.get("id"));
+  await db.update(aiModels).set({
+    inputPriceMicros: toMicros(Number(form.get("inputPrice") ?? 0)),
+    outputPriceMicros: toMicros(Number(form.get("outputPrice") ?? 0)),
+  }).where(eq(aiModels.id, id));
+
+  revalidatePath("/ai");
+  revalidatePath("/usage");
+  return { ok: true, message: "Precio actualizado." };
+}
+
+export async function setDefaultAiModel(id: string, provider: string) {
+  await requireAdmin();
+  const { aiModels } = await import("@/lib/db/schema");
+  await db.update(aiModels).set({ isDefault: false })
+    .where(eq(aiModels.provider, provider as "anthropic" | "openai" | "google" | "groq" | "deepseek"));
+  await db.update(aiModels).set({ isDefault: true }).where(eq(aiModels.id, id));
+  invalidateSiteCache();
+  revalidatePath("/ai");
+}
+
+export async function deleteAiModel(id: string) {
+  await requireAdmin();
+  const { aiModels } = await import("@/lib/db/schema");
+  await db.delete(aiModels).where(eq(aiModels.id, id));
+  revalidatePath("/ai");
+  revalidatePath("/usage");
 }
