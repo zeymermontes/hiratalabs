@@ -9,7 +9,8 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "smoke": "node --experimental-strip-types --import ./scripts/register-loader.mjs scripts/smoke.mjs"
+    "smoke": "node --experimental-strip-types --import ./scripts/register-loader.mjs scripts/smoke.mjs",
+    "check-db": "node scripts/check-db.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

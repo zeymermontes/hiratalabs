@@ -108,6 +108,18 @@ Pon tu correo en `BOOTSTRAP_ADMIN_EMAIL`. Mientras la tabla `admins` esté vací
 puede entrar y queda registrado como admin. Después, solo entran los correos de esa tabla
 (agrégalos con un `insert` en Supabase).
 
+## Diagnosticar la conexión a la base
+
+Si el deploy se queda en "Deploying" o `/api/health` responde 503:
+
+```bash
+npm run check-db "postgresql://postgres.xxxx:PASSWORD@aws-0-us-east-2.pooler.supabase.com:5432/postgres"
+```
+
+Imprime cómo se interpreta el string (sin mostrar la contraseña), avisa de los
+errores típicos —placeholder sin reemplazar, usuario equivocado para el pooler,
+`$` que Next expande, la conexión directa que es IPv6— e intenta conectarse.
+
 ## Desarrollo local
 
 ```bash
