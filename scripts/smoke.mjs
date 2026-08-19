@@ -12,6 +12,7 @@ const { injectIntoHtml, replacePlaceholders } = await import("../src/lib/inject.
 const { publicSiteConfig } = await import("../src/lib/settings.ts");
 const { slugFromHost, isAdminHost, normalizeHost } = await import("../src/lib/host.ts");
 const { SITE_RUNTIME } = await import("../src/lib/runtime.ts");
+const { CHAT_RUNTIME } = await import("../src/lib/chat-widget.ts");
 
 let passed = 0;
 function test(name, fn) {
@@ -145,6 +146,24 @@ test("cannot break out of the inline script tag", () => {
 
 test("runtime script is syntactically valid", () => {
   new Function(SITE_RUNTIME);
+});
+
+test("chat widget script is syntactically valid", () => {
+  new Function(CHAT_RUNTIME);
+});
+
+test("chat script is only injected when the chat is on", () => {
+  const off = injectIntoHtml("<head></head>", config);
+  assert.ok(!off.includes("__site_chat_runtime__"));
+
+  const on = injectIntoHtml("<head></head>", {
+    ...config,
+    chat: {
+      enabled: true, replacesForm: false, launcherLabel: "Cotiza",
+      welcome: "", serviceOptions: [], endpoint: "/api/f/ai", formName: "chat",
+    },
+  });
+  assert.ok(on.includes("__site_chat_runtime__"));
 });
 
 console.log(`\n${passed} checks passed`);

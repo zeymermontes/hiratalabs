@@ -33,6 +33,9 @@ Puntos clave:
 - **Las landings en subdominio muestran un chip "Powered by"** abajo a la derecha,
   inyectado por la plataforma en un shadow DOM. Los dominios propios no lo llevan,
   y el sitio principal tampoco.
+- **El chat de cotización con IA se enciende por sitio** desde el panel. Hace una sola
+  llamada al modelo por conversación y, si falla, sigue con las preguntas fijas sin que
+  el visitante note nada. El resultado entra por el mismo camino que el formulario.
 - **Las versiones son inmutables.** Publicar es apuntar `sites.active_version_id` a otra
   versión; volver atrás es instantáneo.
 - **Los formularios se guardan antes de enviarse.** Si Resend falla, el lead no se pierde.
@@ -42,8 +45,9 @@ Puntos clave:
 ### 1. Supabase
 
 1. Crea el proyecto.
-2. **SQL Editor** → pega y ejecuta [`drizzle/0000_init.sql`](drizzle/0000_init.sql) y
-   luego [`drizzle/0001_drop_global_settings.sql`](drizzle/0001_drop_global_settings.sql).
+2. **SQL Editor** → ejecuta en orden [`drizzle/0000_init.sql`](drizzle/0000_init.sql),
+   [`drizzle/0001_drop_global_settings.sql`](drizzle/0001_drop_global_settings.sql) y
+   [`drizzle/0002_ai_chat.sql`](drizzle/0002_ai_chat.sql).
 3. **Storage** → crea un bucket llamado `landings`, **privado**.
 4. **Project Settings → API** → copia `URL`, `anon key` y `service_role key`.
 5. **Project Settings → Database → Connection string** → pestaña **Session pooler** →
@@ -144,6 +148,21 @@ npm run dev
 2. El cliente crea el CNAME que muestra el panel.
 3. Render emite el certificado solo. Botón **Revisar** para refrescar el estado.
 4. Cuando queda `verified`, el dominio empieza a servir la landing.
+
+## Chat de cotización con IA
+
+Se activa por sitio en la pestaña **Chat IA**. El flujo es una guía de preguntas fijas
+—tipo de proyecto, descripción, plazo, nombre, correo, teléfono— con **una sola** llamada
+al modelo a media conversación, que propone hasta dos preguntas de seguimiento según lo
+que describió el visitante. Si esa llamada falla, tarda o se agota el tope mensual, el
+chat continúa con las preguntas fijas y el visitante no ve ningún error.
+
+Las llaves de proveedor se guardan cifradas con AES-256-GCM usando `ENCRYPTION_KEY`.
+Cada sitio elige entre la llave de la plataforma (**Llaves de IA**) o una del cliente,
+que se factura a su cuenta.
+
+Límites: 6 llamadas por IP cada 10 minutos, más un tope mensual por sitio configurable
+(500 por defecto). El consumo se ve por sitio y en la vista global.
 
 ## Estados de un sitio
 

@@ -48,6 +48,7 @@ export default async function SiteLayout({
         items={[
           { href: "", label: "Publicación" },
           { href: "/settings", label: "Contacto" },
+          { href: "/chat", label: "Chat IA" },
           { href: "/domains", label: "Dominios" },
           { href: "/submissions", label: "Mensajes" },
         ]}

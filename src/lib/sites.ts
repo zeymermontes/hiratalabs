@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { domains, siteVersions, sites, type Site, type SiteVersion } from "@/lib/db/schema";
+import { domains, siteChat, siteVersions, sites, type Site, type SiteVersion } from "@/lib/db/schema";
 import { APEX_SLUG, siteHost, slugFromHost } from "@/lib/host";
 import { publicSiteConfig, resolveSettings, type PublicSiteConfig } from "@/lib/settings";
 
@@ -45,11 +45,22 @@ async function lookup(host: string): Promise<ResolvedSite | null> {
 
   const settings = await resolveSettings(site.id, site.name);
 
+  const [chatRow] = await db.select().from(siteChat).where(eq(siteChat.siteId, site.id));
+  const chat = chatRow?.enabled
+    ? {
+        enabled: true,
+        replacesForm: chatRow.replacesForm,
+        launcherLabel: chatRow.launcherLabel ?? "Cotiza con IA",
+        welcome: chatRow.welcome ?? "",
+        serviceOptions: chatRow.serviceOptions ?? [],
+      }
+    : null;
+
   // The chip marks sites living on a platform subdomain. A client's own domain
   // and the platform's own home page never carry it.
   const poweredBy = slug !== null && slug !== APEX_SLUG;
 
-  return { site, version, config: publicSiteConfig(site, settings, host, { poweredBy }) };
+  return { site, version, config: publicSiteConfig(site, settings, host, { poweredBy, chat }) };
 }
 
 export async function resolveSiteByHost(host: string): Promise<ResolvedSite | null> {

@@ -280,7 +280,7 @@ todo lo demás dentro de \`assets/\`.
 
 ---
 
-## 8. Espacio reservado para el chip "Powered by"
+## 8. Espacio reservado para el chat y el chip
 
 Las landings que viven en un subdominio de \`${ctx.rootDomain}\` muestran un chip flotante abajo a la derecha.
 Lo inyecta la plataforma, va aislado en un shadow DOM y no hereda el CSS de la página: **no lo agregues tú ni
@@ -321,5 +321,35 @@ Si por alguna razón la esquina derecha es intocable, puedes moverlo a la izquie
 \`\`\`html
 <body data-site-badge="left">
 \`\`\`
+
+---
+
+## 9. Chat de cotización con IA
+
+Algunos sitios tienen activado un **chat de cotización**: un botón flotante que abre una conversación
+guiada, hace una llamada a un modelo para proponer preguntas de seguimiento según lo que describió el
+visitante, y al final manda todo por el mismo camino que el formulario de contacto.
+
+**Lo inyecta la plataforma. No lo construyas tú** ni agregues un chat propio: se activa o se apaga desde el
+panel, sin volver a subir el ZIP.
+
+Qué significa para tu diseño:
+
+1. **La esquina inferior derecha queda ocupada por dos cosas**: el botón del chat y, encima, el chip
+   "Powered by". Reserva unos 200 × 120 px ahí y manda cualquier botón flotante tuyo a la izquierda.
+2. **Si el chat va a reemplazar al formulario**, envuelve la sección del formulario en un contenedor con
+   \`data-site-form-section\` para que se oculte el bloque completo —título, texto de apoyo y formulario— y
+   no quede un encabezado suelto sobre un hueco:
+   \`\`\`html
+   <section id="contacto" data-site-form-section>
+     <h2>Escríbenos</h2>
+     <p>Te contestamos el mismo día.</p>
+     <form data-site-form="contacto"> … </form>
+   </section>
+   \`\`\`
+3. **Diseña siempre el formulario de todas formas.** El chat puede estar apagado, y en ese caso el
+   formulario es la única vía de contacto. Nunca dependas de que el chat exista.
+4. **No pongas un aviso tipo "chatea con nosotros"** apuntando a una esquina: el botón trae su propia
+   etiqueta, configurable desde el panel.
 `;
 }

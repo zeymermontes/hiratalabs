@@ -35,5 +35,7 @@ services:
       # RENDER_EXTERNAL_HOSTNAME on its own — the app reads those directly.
       - key: DEPLOY_API_KEY
         sync: false
+      - key: ENCRYPTION_KEY
+        generateValue: true
       - key: BOOTSTRAP_ADMIN_EMAIL
         sync: false

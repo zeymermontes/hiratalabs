@@ -2,7 +2,6 @@ import { eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { submissions } from "@/lib/db/schema";
-import { env } from "@/lib/env";
 import { normalizeHost } from "@/lib/host";
 import { sendSubmissionEmail } from "@/lib/mailer";
 import { rateLimit } from "@/lib/ratelimit";
@@ -141,9 +140,7 @@ export async function POST(req: NextRequest) {
     subject,
     fields,
     pageUrl: data._url || req.headers.get("referer") || undefined,
-    ip,
     submittedAt: row.createdAt,
-    adminUrl: `${env.adminUrl}/sites/${site.id}/submissions`,
   });
 
   await db

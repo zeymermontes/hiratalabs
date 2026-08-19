@@ -1,3 +1,4 @@
+import { CHAT_RUNTIME } from "@/lib/chat-widget";
 import { SITE_RUNTIME } from "@/lib/runtime";
 import type { PublicSiteConfig } from "@/lib/settings";
 
@@ -42,9 +43,15 @@ export function replacePlaceholders(html: string, config: PublicSiteConfig): str
 export function injectIntoHtml(html: string, config: PublicSiteConfig): string {
   const withValues = replacePlaceholders(html, config);
 
+  // The chat script is only shipped to pages that actually use it.
+  const chatBlock = config.chat?.enabled
+    ? `<script id="__site_chat_runtime__">${CHAT_RUNTIME}</script>`
+    : "";
+
   const block =
     `<script id="__site_config__">window.__SITE__=${safeJson(config)};</script>` +
-    `<script id="__site_runtime__">${SITE_RUNTIME}</script>`;
+    `<script id="__site_runtime__">${SITE_RUNTIME}</script>` +
+    chatBlock;
 
   if (/<\/head>/i.test(withValues)) {
     return withValues.replace(/<\/head>/i, `${block}</head>`);

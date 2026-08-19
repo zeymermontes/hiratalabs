@@ -150,3 +150,63 @@ export type SiteSettingsRow = typeof siteSettings.$inferSelect;
 export type GlobalSettingsRow = typeof globalSettings.$inferSelect;
 export type Domain = typeof domains.$inferSelect;
 export type Submission = typeof submissions.$inferSelect;
+
+/* ------------------------- AI quote-assistant chat ------------------------ */
+
+export const aiProvider = pgEnum("ai_provider", ["anthropic", "openai", "google", "groq"]);
+export const aiKeyMode = pgEnum("ai_key_mode", ["platform", "own"]);
+
+/** Platform-wide provider credentials, encrypted at rest. */
+export const aiKeys = pgTable("ai_keys", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  provider: aiProvider("provider").notNull(),
+  label: text("label").notNull(),
+  /** AES-256-GCM payload — never the raw key. */
+  secret: text("secret").notNull(),
+  /** Last 4 characters, so the admin can tell two keys apart. */
+  hint: text("hint").notNull(),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  providerIdx: index("ai_keys_provider_idx").on(t.provider),
+}));
+
+/** Per-site chat configuration. Absent row means the chat is off. */
+export const siteChat = pgTable("site_chat", {
+  siteId: uuid("site_id").primaryKey().references(() => sites.id, { onDelete: "cascade" }),
+  enabled: boolean("enabled").notNull().default(false),
+  /** true = the chat is the only intake, false = it sits alongside the form. */
+  replacesForm: boolean("replaces_form").notNull().default(false),
+  keyMode: aiKeyMode("key_mode").notNull().default("platform"),
+  provider: aiProvider("provider").notNull().default("anthropic"),
+  model: text("model"),
+  /** Client's own credential when keyMode = "own", encrypted the same way. */
+  ownSecret: text("own_secret"),
+  ownHint: text("own_hint"),
+  launcherLabel: text("launcher_label"),
+  welcome: text("welcome"),
+  /** What the business does — grounds the follow-up questions. */
+  businessContext: text("business_context"),
+  /** Options for the opening "what do you need" question. */
+  serviceOptions: text("service_options").array().default([]).notNull(),
+  monthlyLimit: integer("monthly_limit").notNull().default(500),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** One row per AI call, for the monthly cap and for cost visibility. */
+export const aiUsage = pgTable("ai_usage", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  provider: aiProvider("provider").notNull(),
+  model: text("model"),
+  ok: boolean("ok").notNull().default(true),
+  error: text("error"),
+  inputTokens: integer("input_tokens"),
+  outputTokens: integer("output_tokens"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  siteIdx: index("ai_usage_site_created_idx").on(t.siteId, t.createdAt),
+}));
+
+export type AiKey = typeof aiKeys.$inferSelect;
+export type SiteChat = typeof siteChat.$inferSelect;

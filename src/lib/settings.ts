@@ -65,7 +65,16 @@ export function publicSiteConfig(
   site: { id: string; name: string; slug: string },
   s: EffectiveSettings,
   host: string,
-  options: { poweredBy?: boolean } = {},
+  options: {
+    poweredBy?: boolean;
+    chat?: {
+      enabled: boolean;
+      replacesForm: boolean;
+      launcherLabel: string;
+      welcome: string;
+      serviceOptions: string[];
+    } | null;
+  } = {},
 ) {
   const waDigits = s.whatsapp.replace(DIGITS, "").replace(/^\+/, "");
   const telDigits = s.phone.replace(DIGITS, "");
@@ -91,6 +100,9 @@ export function publicSiteConfig(
     poweredBy: options.poweredBy === true,
     poweredByName: env.platformName,
     poweredByUrl: `https://${env.rootDomain}`,
+    chat: options.chat
+      ? { ...options.chat, endpoint: "/api/f/ai", formName: "chat" }
+      : null,
   };
 }
 

@@ -346,3 +346,114 @@ export async function deleteSubmission(siteId: string, id: string) {
   await db.delete(submissions).where(eq(submissions.id, id));
   revalidatePath(`/sites/${siteId}/submissions`);
 }
+
+/* --------------------------- AI chat + keys ----------------------------- */
+
+export async function addAiKey(_prev: ActionState, form: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const { encryptSecret, encryptionConfigured, secretHint } = await import("@/lib/crypto");
+  const { aiKeys } = await import("@/lib/db/schema");
+
+  if (!encryptionConfigured()) {
+    return { error: "Falta ENCRYPTION_KEY (mínimo 32 caracteres) para poder guardar llaves." };
+  }
+
+  const provider = String(form.get("provider") ?? "") as "anthropic" | "openai" | "google" | "groq";
+  const label = String(form.get("label") ?? "").trim() || "Sin nombre";
+  const secret = String(form.get("secret") ?? "").trim();
+
+  if (!["anthropic", "openai", "google", "groq"].includes(provider)) return { error: "Proveedor inválido." };
+  if (secret.length < 12) return { error: "Esa llave se ve incompleta." };
+
+  const existing = await db.select().from(aiKeys).where(eq(aiKeys.provider, provider));
+  await db.insert(aiKeys).values({
+    provider, label,
+    secret: encryptSecret(secret),
+    hint: secretHint(secret),
+    isDefault: existing.length === 0,
+  });
+
+  revalidatePath("/ai");
+  return { ok: true, message: "Llave guardada, cifrada." };
+}
+
+export async function deleteAiKey(id: string) {
+  await requireAdmin();
+  const { aiKeys } = await import("@/lib/db/schema");
+  await db.delete(aiKeys).where(eq(aiKeys.id, id));
+  revalidatePath("/ai");
+}
+
+export async function setDefaultAiKey(id: string, provider: string) {
+  await requireAdmin();
+  const { aiKeys } = await import("@/lib/db/schema");
+  await db.update(aiKeys).set({ isDefault: false })
+    .where(eq(aiKeys.provider, provider as "anthropic" | "openai" | "google" | "groq"));
+  await db.update(aiKeys).set({ isDefault: true }).where(eq(aiKeys.id, id));
+  revalidatePath("/ai");
+}
+
+export async function saveSiteChat(_prev: ActionState, form: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const { encryptSecret, encryptionConfigured, secretHint } = await import("@/lib/crypto");
+  const { aiKeys, siteChat } = await import("@/lib/db/schema");
+
+  const siteId = String(form.get("siteId"));
+  const enabled = form.get("enabled") === "on";
+  const keyMode = (String(form.get("keyMode") ?? "platform") === "own" ? "own" : "platform") as "platform" | "own";
+  const provider = String(form.get("provider") ?? "anthropic") as "anthropic" | "openai" | "google" | "groq";
+  const model = String(form.get("model") ?? "").trim() || null;
+  const newSecret = String(form.get("ownSecret") ?? "").trim();
+
+  const serviceOptions = String(form.get("serviceOptions") ?? "")
+    .split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 8);
+
+  const values = {
+    enabled,
+    replacesForm: form.get("replacesForm") === "on",
+    keyMode,
+    provider,
+    model,
+    launcherLabel: String(form.get("launcherLabel") ?? "").trim() || null,
+    welcome: String(form.get("welcome") ?? "").trim() || null,
+    businessContext: String(form.get("businessContext") ?? "").trim() || null,
+    serviceOptions,
+    monthlyLimit: Math.max(0, Number(form.get("monthlyLimit") ?? 500) || 0),
+    updatedAt: new Date(),
+  };
+
+  const [current] = await db.select().from(siteChat).where(eq(siteChat.siteId, siteId));
+
+  // The stored key is only replaced when a new one is typed in.
+  let ownSecret = current?.ownSecret ?? null;
+  let ownHint = current?.ownHint ?? null;
+  if (newSecret) {
+    if (!encryptionConfigured()) {
+      return { error: "Falta ENCRYPTION_KEY (mínimo 32 caracteres) para poder guardar llaves." };
+    }
+    ownSecret = encryptSecret(newSecret);
+    ownHint = secretHint(newSecret);
+  }
+
+  if (enabled) {
+    if (keyMode === "own" && !ownSecret) {
+      return { error: "Elegiste usar la llave del cliente pero no capturaste ninguna." };
+    }
+    if (keyMode === "platform") {
+      const rows = await db.select().from(aiKeys).where(eq(aiKeys.provider, provider));
+      if (rows.length === 0) {
+        return { error: `No hay ninguna llave de plataforma para ese proveedor. Agrégala en "Llaves de IA".` };
+      }
+    }
+    if (provider !== "anthropic" && !model) {
+      return { error: "Para ese proveedor tienes que escribir el modelo exacto." };
+    }
+  }
+
+  const row = { siteId, ...values, ownSecret, ownHint };
+  await db.insert(siteChat).values(row)
+    .onConflictDoUpdate({ target: siteChat.siteId, set: { ...values, ownSecret, ownHint } });
+
+  await refreshSite(siteId);
+  return { ok: true, message: enabled ? "Chat activado y guardado." : "Guardado. El chat está apagado." };
+}
