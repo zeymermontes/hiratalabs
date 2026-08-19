@@ -104,7 +104,7 @@ export function dnsInstructions(hostname: string, serviceHost: string) {
         { type: "ALIAS / ANAME", name: "@", value: serviceHost, label: "si el proveedor lo soporta" },
         { type: "A", name: "@", value: env.renderApexIp, label: "si no soporta ALIAS" },
       ] as DnsRecord[],
-      note: `Crea solo uno de los dos, no ambos. Si el DNS está en Cloudflare, usa CNAME a ${serviceHost} incluso en el ápex: Cloudflare lo aplana y rechaza el registro A. Si el panel de Render muestra otra IP para este dominio, esa manda. Para que también responda en www.${raiz}, agrégalo aquí como dominio aparte.`,
+      note: `Crea solo uno de los dos, no ambos, y EDITA el registro A que ya exista en lugar de agregar otro: dos registros A reparten las visitas entre el servidor viejo y este. Si cPanel rechaza «@», escribe ${raiz}. con el punto final. Revisa antes a dónde apunta el MX: si es al ápex, primero pásalo a un host de correo propio o el correo del cliente se rompe. Con Cloudflare usa CNAME a ${serviceHost} incluso en el ápex, porque aplana el registro. Si el panel de Render muestra otra IP, esa manda. Para responder también en www.${raiz}, agrégalo aquí como dominio aparte.`,
     };
   }
 

@@ -40,6 +40,29 @@ export function replacePlaceholders(html: string, config: PublicSiteConfig): str
 }
 
 /** Injects window.__SITE__ plus the runtime into a page's <head>. */
+/**
+ * Datos estructurados de Organización, armados con lo que hay en el panel.
+ * Es la señal con la que Google reconoce la marca como entidad; sin ella un
+ * dominio nuevo compite solo por texto contra homónimos ya establecidos.
+ * Solo se emiten los campos con valor, igual que el resto del runtime.
+ */
+export function organizationJsonLd(config: PublicSiteConfig): string {
+  const redes = Object.values(config.socials || {}).filter(Boolean);
+  const data: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: config.brandName,
+    url: `https://${config.host}/`,
+  };
+  if (config.email) data.email = config.email;
+  if (config.phone) data.telephone = config.phone;
+  if (config.address) data.address = config.address;
+  if (config.mapsUrl) data.hasMap = config.mapsUrl;
+  if (redes.length) data.sameAs = redes;
+
+  return `<script type="application/ld+json" id="__site_jsonld__">${safeJson(data)}</script>`;
+}
+
 export function injectIntoHtml(html: string, config: PublicSiteConfig): string {
   const withValues = replacePlaceholders(html, config);
 
@@ -48,7 +71,13 @@ export function injectIntoHtml(html: string, config: PublicSiteConfig): string {
     ? `<script id="__site_chat_runtime__">${CHAT_RUNTIME}</script>`
     : "";
 
+  // Solo se omite si la landing ya declara la organización. Un FAQPage o un
+  // BreadcrumbList propios conviven sin problema con el bloque del panel.
+  const yaDeclaraOrg = /"@type"\s*:\s*"(Organization|LocalBusiness|Corporation|ProfessionalService)"/i.test(withValues);
+  const jsonLd = yaDeclaraOrg ? "" : organizationJsonLd(config);
+
   const block =
+    jsonLd +
     `<script id="__site_config__">window.__SITE__=${safeJson(config)};</script>` +
     `<script id="__site_runtime__">${SITE_RUNTIME}</script>` +
     chatBlock;

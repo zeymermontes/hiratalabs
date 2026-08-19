@@ -57,12 +57,21 @@ async function lookup(host: string): Promise<ResolvedSite | null> {
       }
     : null;
 
-  // The chip marks sites living on a platform subdomain. A client's own domain
-  // and the platform's own home page never carry it, and it can be switched off
-  // per site from the panel.
-  const poweredBy = site.showPoweredBy && slug !== null && slug !== APEX_SLUG;
+  const poweredBy = shouldShowPoweredBy(site.showPoweredBy, slug);
 
   return { site, version, config: publicSiteConfig(site, settings, host, { poweredBy, chat }) };
+}
+
+/**
+ * El interruptor del panel decide, también en el dominio propio del cliente.
+ * Validar un dominio propio lo apaga una sola vez (ver autoHidePoweredBy en las
+ * acciones del panel); si el admin lo enciende de nuevo, el chip se muestra.
+ * La única excepción fija es la home de la plataforma, que no se anuncia a sí misma.
+ *
+ * @param slug  label del subdominio, o null cuando es un dominio propio.
+ */
+export function shouldShowPoweredBy(showPoweredBy: boolean, slug: string | null): boolean {
+  return showPoweredBy && slug !== APEX_SLUG;
 }
 
 export async function resolveSiteByHost(host: string): Promise<ResolvedSite | null> {

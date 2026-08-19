@@ -8,10 +8,11 @@ process.env.ADMIN_HOST = "admin.hiratalabs.com";
 process.env.DATABASE_URL = "postgresql://user:pass@127.0.0.1:5432/db";
 
 const { extractZip } = await import("../src/lib/zip.ts");
-const { injectIntoHtml, replacePlaceholders } = await import("../src/lib/inject.ts");
+const { injectIntoHtml, replacePlaceholders, organizationJsonLd } = await import("../src/lib/inject.ts");
 const { publicSiteConfig, safeUrl } = await import("../src/lib/settings.ts");
 const { slugFromHost, isAdminHost, normalizeHost } = await import("../src/lib/host.ts");
 const { dnsInstructions, registrableDomain } = await import("../src/lib/render.ts");
+const { shouldShowPoweredBy } = await import("../src/lib/sites.ts");
 const { SITE_RUNTIME } = await import("../src/lib/runtime.ts");
 const { CHAT_RUNTIME } = await import("../src/lib/chat-widget.ts");
 const { costOf, toMicros, fromMicros, formatUsd } = await import("../src/lib/ai/pricing.ts");
@@ -68,6 +69,24 @@ test("extracts slug from subdomain", () => {
 test("recognizes the admin host", () => {
   assert.equal(isAdminHost("admin.hiratalabs.com"), true);
   assert.equal(isAdminHost("acme.hiratalabs.com"), false);
+});
+
+/* ---------------------------- chip powered-by ---------------------------- */
+
+test("the chip follows the panel switch on a platform subdomain", () => {
+  assert.equal(shouldShowPoweredBy(true, "hirata-impresion"), true);
+  assert.equal(shouldShowPoweredBy(false, "hirata-impresion"), false);
+});
+
+test("the chip also follows the switch on the client's own domain", () => {
+  // slug null = dominio propio. Antes se suprimía siempre; ahora manda el panel,
+  // porque al validar el dominio se apaga solo una vez y el admin puede reactivarlo.
+  assert.equal(shouldShowPoweredBy(true, null), true);
+  assert.equal(shouldShowPoweredBy(false, null), false);
+});
+
+test("the platform home never carries the chip", () => {
+  assert.equal(shouldShowPoweredBy(true, "www"), false);
 });
 
 /* -------------------------------- dns ----------------------------------- */
@@ -223,6 +242,33 @@ test("a maps link is restricted to http(s)", () => {
   assert.equal(safeUrl("  "), "");
   assert.ok(safeUrl("maps.app.goo.gl/abc").startsWith("https://"));
   assert.equal(safeUrl("http://maps.google.com/?q=x"), "http://maps.google.com/?q=x");
+});
+
+test("emits Organization data from the panel, skipping empty fields", () => {
+  const ld = JSON.parse(organizationJsonLd(config).replace(/^[^>]*>/, "").replace(/<\/script>$/, ""));
+  assert.equal(ld["@type"], "Organization");
+  assert.equal(ld.name, "ACME");
+  assert.equal(ld.url, "https://acme.hiratalabs.com/");
+  assert.equal(ld.email, "hola@acme.com");
+  assert.deepEqual(ld.sameAs, ["https://instagram.com/acme"]);
+  assert.ok(!("hasMap" in ld), "sin enlace de mapa no debe emitirse hasMap");
+});
+
+test("does not duplicate the organization the landing already declares", () => {
+  const propio = '<head><script type="application/ld+json">{"@type":"LocalBusiness"}</script></head>';
+  assert.ok(!injectIntoHtml(propio, config).includes("__site_jsonld__"));
+});
+
+test("a landing's FAQPage does not block the organization block", () => {
+  // Son tipos distintos: conviven en la misma página sin competir.
+  const faq = '<head><script type="application/ld+json">{"@type":"FAQPage"}</script></head>';
+  const out = injectIntoHtml(faq, config);
+  assert.ok(out.includes("__site_jsonld__"));
+  assert.equal(out.match(/application\/ld\+json/g).length, 2);
+});
+
+test("injects structured data when the landing has none", () => {
+  assert.ok(injectIntoHtml("<head></head>", config).includes("__site_jsonld__"));
 });
 
 test("replaces placeholders and blanks unknown keys", () => {

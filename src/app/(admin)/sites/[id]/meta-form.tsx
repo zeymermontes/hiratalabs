@@ -10,7 +10,7 @@ export function MetaForm({
   site: {
     id: string; name: string; slug: string;
     maintenanceTitle: string | null; maintenanceMessage: string | null;
-    notes: string | null; showPoweredBy: boolean;
+    notes: string | null; showPoweredBy: boolean; poweredByAutoOff: boolean;
   };
   rootDomain: string;
 }) {
@@ -42,8 +42,10 @@ export function MetaForm({
                 Mostrar el chip &ldquo;Powered by Hirata Labs&rdquo;
               </span>
               <span className="hint mt-0.5 block">
-                Aparece abajo a la derecha en las landings servidas desde un subdominio. Los dominios
-                propios del cliente y el sitio principal nunca lo llevan, esté marcado o no.
+                Aparece abajo a la derecha, tanto en el subdominio como en el dominio propio del
+                cliente. Al validarse un dominio propio se apaga solo una vez; si lo vuelves a
+                marcar, se queda encendido. El sitio principal nunca lo lleva.
+                {site.poweredByAutoOff ? " Aquí ya ocurrió ese apagado automático." : ""}
               </span>
             </span>
           </label>

@@ -362,9 +362,23 @@ export async function addDomain(_prev: ActionState, form: FormData): Promise<Act
   }
 
   await db.insert(domains).values({ siteId, hostname, renderDomainId, status });
+  if (status === "verified") await autoHidePoweredBy(siteId);
   await refreshSite(siteId);
 
   return { ok: true, message: `Dominio agregado.${warning} Falta que el cliente cree el registro DNS.` };
+}
+
+/**
+ * Un dominio propio recién validado apaga el chip por sí solo, UNA vez.
+ * La bandera es lo que hace que sea una sola: sin ella, cada re-verificación
+ * lo volvería a apagar y el admin no podría dejarlo encendido a propósito.
+ */
+async function autoHidePoweredBy(siteId: string) {
+  const [site] = await db.select().from(sites).where(eq(sites.id, siteId));
+  if (!site || site.poweredByAutoOff) return;
+  await db.update(sites)
+    .set({ showPoweredBy: false, poweredByAutoOff: true, updatedAt: new Date() })
+    .where(eq(sites.id, siteId));
 }
 
 export async function refreshDomain(siteId: string, domainId: string) {
@@ -373,12 +387,14 @@ export async function refreshDomain(siteId: string, domainId: string) {
   if (!row) return;
 
   const remote = await getCustomDomain(row.renderDomainId ?? row.hostname);
+  const verified = remote?.verificationStatus === "verified" || row.status === "verified";
   await db.update(domains).set({
-    status: remote?.verificationStatus === "verified" ? "verified" : row.status === "verified" ? "verified" : "pending",
+    status: verified ? "verified" : "pending",
     renderDomainId: remote?.id ?? row.renderDomainId,
     lastCheckedAt: new Date(),
   }).where(eq(domains.id, domainId));
 
+  if (verified) await autoHidePoweredBy(siteId);
   await refreshSite(siteId);
 }
 
@@ -386,6 +402,7 @@ export async function refreshDomain(siteId: string, domainId: string) {
 export async function forceVerifyDomain(siteId: string, domainId: string) {
   await requireAdmin();
   await db.update(domains).set({ status: "verified", lastCheckedAt: new Date() }).where(eq(domains.id, domainId));
+  await autoHidePoweredBy(siteId);
   await refreshSite(siteId);
 }
 

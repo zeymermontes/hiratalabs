@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 """
-make-favicons <imagen-origen> <carpeta-destino>
+make-favicons <imagen-origen> <carpeta-destino> [--bg RRGGBB] [--mark x0,y0,x1,y1]
 
 Genera el juego completo de favicons a partir de un logo. Lo usa create-landing
 cuando el sitio no trae los suyos, para que no dependa de que alguien se acuerde.
+
+  --bg    color del cuadro de fondo. Si no se pasa, se elige mirando el logo:
+          uno claro recibe fondo oscuro y al revés.
+  --mark  recorte del logo que se usa SOLO en favicon.ico. Un wordmark completo
+          es una mancha ilegible a 16 px, que es el tamaño de la pestaña; ahí
+          conviene una sola letra o el símbolo.
 """
 import sys, json, pathlib
 
@@ -13,7 +19,17 @@ except ImportError:
     print("Falta Pillow. Instálalo con: pip3 install Pillow", file=sys.stderr)
     sys.exit(2)
 
-INK = (12, 10, 38, 255)
+DARK = (17, 17, 17, 255)
+LIGHT = (247, 247, 245, 255)
+
+
+def contrast_bg(img):
+    """El fondo se decide por la luminancia del logo, no por un color fijo."""
+    px = [p for p in img.getdata() if p[3] > 32]
+    if not px:
+        return DARK
+    lum = sum(0.2126 * r + 0.7152 * g + 0.0722 * b for r, g, b, _ in px) / len(px)
+    return DARK if lum > 110 else LIGHT
 
 
 def square(img, side, pad=0.08, bg=None):
@@ -32,18 +48,43 @@ def main():
         print("uso: make-favicons <imagen> <carpeta>", file=sys.stderr)
         sys.exit(1)
 
-    src_path, out_dir = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+    args = sys.argv[1:]
+
+    def flag(name):
+        if name in args:
+            i = args.index(name)
+            v = args[i + 1]
+            del args[i:i + 2]
+            return v
+        return None
+
+    bg_raw = flag("--bg")
+    mark_raw = flag("--mark")
+
+    src_path, out_dir = pathlib.Path(args[0]), pathlib.Path(args[1])
     img = Image.open(src_path).convert("RGBA")
 
+    bg = contrast_bg(img)
+    if bg_raw:
+        h = bg_raw.lstrip("#")
+        bg = (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), 255)
+
+    # El .ico lleva fondo sólido igual que los demás: sin él, un logo claro
+    # desaparece en las pestañas de tema claro.
+    small = img
+    if mark_raw:
+        x0, y0, x1, y1 = (int(n) for n in mark_raw.split(","))
+        small = img.crop((x0, y0, x1, y1))
+
     written = []
-    square(img, 256).save(out_dir / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48), (64, 64)])
+    square(small, 256, 0.14, bg).save(
+        out_dir / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48), (64, 64)])
     written.append("favicon.ico")
 
-    # iOS y Android no manejan bien la transparencia: fondo sólido.
     for name, size in [("apple-touch-icon.png", 180),
                        ("android-chrome-192x192.png", 192),
                        ("android-chrome-512x512.png", 512)]:
-        square(img, size, 0.14, INK).save(out_dir / name)
+        square(img, size, 0.14, bg).save(out_dir / name)
         written.append(name)
 
     manifest = out_dir / "site.webmanifest"

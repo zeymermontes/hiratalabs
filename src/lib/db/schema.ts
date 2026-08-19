@@ -36,8 +36,13 @@ export const sites = pgTable("sites", {
   maintenanceTitle: text("maintenance_title"),
   maintenanceMessage: text("maintenance_message"),
   activeVersionId: uuid("active_version_id"),
-  /** Applies to platform subdomains; a client's own domain never carries it. */
+  /** Governs the chip on every host except the platform's own home page. */
   showPoweredBy: boolean("show_powered_by").notNull().default(true),
+  /**
+   * True once a verified custom domain switched the chip off by itself. Keeps
+   * that from happening twice, so the admin can turn it back on and have it stay.
+   */
+  poweredByAutoOff: boolean("powered_by_auto_off").notNull().default(false),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
