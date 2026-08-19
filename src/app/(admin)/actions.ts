@@ -493,6 +493,16 @@ export async function saveSiteChat(_prev: ActionState, form: FormData): Promise<
   const serviceOptions = String(form.get("serviceOptions") ?? "")
     .split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 8);
 
+  const [current] = await db.select().from(siteChat).where(eq(siteChat.siteId, siteId));
+
+  // La forma del lanzador es lo único del tema que se edita desde el panel; el
+  // resto de los colores llega del landing.json, así que se fusiona sobre lo
+  // que ya había en vez de reemplazar el objeto entero.
+  const forma = String(form.get("launcherShape") ?? "").trim();
+  const theme = forma === "pill" || forma === "circle"
+    ? { ...(current?.theme ?? {}), launcherShape: forma }
+    : current?.theme ?? null;
+
   const values = {
     enabled,
     replacesForm: form.get("replacesForm") === "on",
@@ -503,11 +513,10 @@ export async function saveSiteChat(_prev: ActionState, form: FormData): Promise<
     welcome: String(form.get("welcome") ?? "").trim() || null,
     businessContext: String(form.get("businessContext") ?? "").trim() || null,
     serviceOptions,
+    theme,
     monthlyLimit: Math.max(0, Number(form.get("monthlyLimit") ?? 500) || 0),
     updatedAt: new Date(),
   };
-
-  const [current] = await db.select().from(siteChat).where(eq(siteChat.siteId, siteId));
 
   // The stored key is only replaced when a new one is typed in.
   let ownSecret = current?.ownSecret ?? null;

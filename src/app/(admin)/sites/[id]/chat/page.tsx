@@ -63,6 +63,8 @@ export default async function SiteChatPage({ params }: { params: Promise<{ id: s
           businessContext: chat?.businessContext ?? "",
           serviceOptions: chat?.serviceOptions ?? [],
           monthlyLimit: limit,
+          // El default coincide con el del widget: sin forma declarada, píldora.
+          launcherShape: chat?.theme?.launcherShape === "circle" ? "circle" : "pill",
         }}
       />
     </div>

@@ -26,6 +26,7 @@ export type ChatValues = {
   businessContext: string;
   serviceOptions: string[];
   monthlyLimit: number;
+  launcherShape: "pill" | "circle";
 };
 
 export function ChatForm({
@@ -181,6 +182,15 @@ export function ChatForm({
             </Field>
             <Field label="Tope de llamadas al mes" hint="Al llegar, el chat sigue funcionando sin las preguntas de IA.">
               <input name="monthlyLimit" type="number" min={0} defaultValue={values.monthlyLimit} className="input" />
+            </Field>
+            <Field
+              label="Forma del botón"
+              hint="En pantallas chicas el círculo se vuelve píldora de todos modos, para no tapar el contenido."
+            >
+              <select name="launcherShape" defaultValue={values.launcherShape} className="input">
+                <option value="pill">Píldora — compacta, con el texto en una línea</option>
+                <option value="circle">Círculo — más presencia, ocupa más espacio</option>
+              </select>
             </Field>
           </div>
 
