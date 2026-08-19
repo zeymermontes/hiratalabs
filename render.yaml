@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: landings
+    runtime: node
+    plan: starter          # free spins down after 15 min — a client's landing would take ~50s to wake
+    region: oregon
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ROOT_DOMAIN
+        value: hiratalabs.com
+      - key: ADMIN_HOST
+        value: admin.hiratalabs.com
+      - key: NEXT_PUBLIC_ADMIN_URL
+        value: https://admin.hiratalabs.com
+      - key: RENDER_SERVICE_HOST
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: landings
+      - key: DATABASE_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
+      - key: RENDER_API_KEY
+        sync: false
+      - key: RENDER_SERVICE_ID
+        sync: false
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false

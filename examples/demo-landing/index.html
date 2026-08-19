@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{site.brandName}} — Demo</title>
+  <meta name="description" content="Landing de ejemplo que lee todos sus datos del panel.">
+  <link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+  <header class="nav">
+    <span class="brand" data-site="brandName">Marca</span>
+    <a class="btn" data-site-href="whatsapp">WhatsApp</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Landing de ejemplo de <span data-site="brandName"></span></h1>
+      <p>
+        Ni un solo dato de contacto está escrito en este HTML. Todo lo inyecta la
+        plataforma desde el panel — cámbialo ahí y esta página se actualiza sola.
+      </p>
+      <a class="btn btn-primary" href="#contacto">Contáctanos</a>
+    </section>
+
+    <section class="grid">
+      <div class="card" data-site-hide-parent>
+        <span class="label">Correo</span>
+        <a data-site-href="email" data-site="email"></a>
+      </div>
+      <div class="card" data-site-hide-parent>
+        <span class="label">Teléfono</span>
+        <a data-site-href="phone" data-site="phone"></a>
+      </div>
+      <div class="card" data-site-hide-parent>
+        <span class="label">WhatsApp</span>
+        <a data-site-href="whatsapp" data-site="whatsapp"></a>
+      </div>
+      <div class="card" data-site-hide-parent>
+        <span class="label">Dirección</span>
+        <a data-site-href="address" data-site="address"></a>
+      </div>
+    </section>
+
+    <section id="contacto" class="contacto">
+      <h2>Escríbenos</h2>
+      <form data-site-form="contacto">
+        <input name="nombre" type="text" required placeholder="Tu nombre">
+        <input name="email" type="email" required placeholder="Tu correo">
+        <input name="telefono" type="tel" placeholder="Tu teléfono (opcional)">
+        <textarea name="mensaje" rows="4" required placeholder="¿En qué te podemos ayudar?"></textarea>
+        <button type="submit">Enviar mensaje</button>
+        <p class="ok" data-site-form-success hidden>¡Gracias! Te contactamos pronto.</p>
+        <p class="bad" data-site-form-error hidden>No se pudo enviar. Intenta de nuevo.</p>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    <nav class="social">
+      <a data-site-href="instagram">Instagram</a>
+      <a data-site-href="facebook">Facebook</a>
+      <a data-site-href="linkedin">LinkedIn</a>
+      <a data-site-href="tiktok">TikTok</a>
+      <a data-site-href="youtube">YouTube</a>
+      <a data-site-href="x">X</a>
+    </nav>
+    <p>&copy; {{site.year}} {{site.brandName}}</p>
+  </footer>
+</body>
+</html>
