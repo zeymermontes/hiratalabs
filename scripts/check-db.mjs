@@ -72,6 +72,28 @@ try {
   const [row] = await sql`select current_user as who, version() as v`;
   console.log(`  OK — connected as "${row.who}"`);
   console.log(`  ${row.v.split(",")[0]}`);
+
+  // The connection working is only half of it: the schema has to be there too.
+  const EXPECTED = [
+    "admins", "sites", "site_versions", "site_files",
+    "site_settings", "global_settings", "domains", "submissions",
+  ];
+  const found = await sql`
+    select table_name from information_schema.tables
+    where table_schema = 'public'
+  `;
+  const names = new Set(found.map((r) => r.table_name));
+  const absent = EXPECTED.filter((t) => !names.has(t));
+
+  console.log("\nSchema:");
+  if (absent.length === 0) {
+    console.log(`  OK — all ${EXPECTED.length} tables present`);
+  } else {
+    console.log(`  MISSING ${absent.length} of ${EXPECTED.length}: ${absent.join(", ")}`);
+    console.log("  Run drizzle/0000_init.sql in the Supabase SQL Editor.");
+    process.exitCode = 1;
+  }
+
   await sql.end();
 } catch (err) {
   console.log(`  FAILED — ${err.message}${err.code ? ` (${err.code})` : ""}`);
