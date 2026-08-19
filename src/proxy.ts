@@ -30,8 +30,14 @@ export function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Tenant host from here on.
-  if (pathname.startsWith("/_next/") || pathname.startsWith("/api/f/")) {
+  // Tenant host from here on. Three paths must never be rewritten into a site:
+  // the form endpoint (landings post to it on their own origin), Next's assets,
+  // and the health check — Render probes it with the instance host, not ours.
+  if (
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/api/f/") ||
+    pathname === "/api/health"
+  ) {
     return NextResponse.next();
   }
 
