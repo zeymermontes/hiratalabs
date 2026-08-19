@@ -58,6 +58,66 @@ function parseKeyValues(raw: FormDataEntryValue | null): Record<string, string> 
   return out;
 }
 
+/**
+ * Applies a landing.json to the site's chat settings. Only fills what is still
+ * empty: whatever the admin already configured wins, and the chat is never
+ * switched on from a ZIP, since each conversation costs money.
+ */
+async function applyManifest(siteId: string, raw: string): Promise<string> {
+  const { parseManifest, describeApplied } = await import("@/lib/landing-manifest");
+  const { siteChat } = await import("@/lib/db/schema");
+
+  const { manifest, error } = parseManifest(raw);
+  if (error) return error;
+  const chat = manifest?.chat;
+  if (!chat) return "";
+
+  const [current] = await db.select().from(siteChat).where(eq(siteChat.siteId, siteId));
+
+  const applied: string[] = [];
+  const skipped: string[] = [];
+  const values: Record<string, unknown> = {};
+
+  const fill = (label: string, incoming: unknown, existing: unknown, column: string) => {
+    if (incoming === undefined) return;
+    const isEmpty =
+      existing === null || existing === undefined || existing === "" ||
+      (Array.isArray(existing) && existing.length === 0);
+    if (isEmpty) {
+      values[column] = incoming;
+      applied.push(label);
+    } else {
+      skipped.push(label);
+    }
+  };
+
+  fill("el texto del botón", chat.launcherLabel, current?.launcherLabel, "launcherLabel");
+  fill("el mensaje de bienvenida", chat.welcome, current?.welcome, "welcome");
+  fill("las opciones de la primera pregunta", chat.serviceOptions, current?.serviceOptions, "serviceOptions");
+  fill(
+    "el contexto del negocio",
+    chat.scope ? JSON.stringify(chat.scope, null, 2) : undefined,
+    current?.businessContext,
+    "businessContext",
+  );
+
+  // replacesForm solo aplica al crear la configuración: no pisa una decisión previa.
+  if (chat.replacesForm !== undefined && !current) {
+    values.replacesForm = chat.replacesForm;
+    applied.push("si el chat reemplaza el formulario");
+  }
+
+  if (Object.keys(values).length === 0) {
+    return skipped.length ? describeApplied([], skipped) : "";
+  }
+
+  values.updatedAt = new Date();
+  await db.insert(siteChat).values({ siteId, ...values })
+    .onConflictDoUpdate({ target: siteChat.siteId, set: values });
+
+  return describeApplied(applied, skipped);
+}
+
 /* ------------------------------- sites ---------------------------------- */
 
 export async function createSite(_prev: ActionState, form: FormData): Promise<ActionState> {
@@ -183,12 +243,17 @@ export async function uploadVersion(_prev: ActionState, form: FormData): Promise
     }).where(eq(sites.id, siteId));
   }
 
+  const manifestNote = extracted.manifestJson
+    ? await applyManifest(siteId, extracted.manifestJson)
+    : "";
+
   await refreshSite(siteId);
 
   const notes = [
     `${extracted.files.length} archivos subidos (${(extracted.totalBytes / 1e6).toFixed(2)}MB).`,
     extracted.strippedRoot ? `Se quitó la carpeta raíz "${extracted.strippedRoot}".` : "",
     extracted.skipped.length ? `${extracted.skipped.length} archivos ignorados.` : "",
+    manifestNote,
   ].filter(Boolean);
 
   return { ok: true, message: notes.join(" ") };

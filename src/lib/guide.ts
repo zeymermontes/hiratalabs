@@ -39,6 +39,7 @@ landing.zip
 ├── apple-touch-icon.png  ← recomendado, 180×180
 ├── site.webmanifest      ← opcional
 ├── robots.txt            ← opcional
+├── landing.json          ← opcional, configura el chat (ver sección 9)
 └── assets/
     ├── css/
     │   └── style.css
@@ -352,36 +353,70 @@ Qué significa para tu diseño:
 4. **No pongas un aviso tipo "chatea con nosotros"** apuntando a una esquina: el botón trae su propia
    etiqueta, configurable desde el panel.
 
-### Entrega también las restricciones del chat
+### Incluye \`landing.json\` en el ZIP
 
-Si el sitio va a usar el chat, entrega junto con el ZIP este bloque JSON. Se pega en el panel, en el campo
-**"A qué se dedica el negocio"**, y es lo que mantiene al asistente dentro de su tema: sin él, el chat
-queda abierto a que alguien lo use como asistente personal y queme tokens del cliente.
+Pon un archivo **\`landing.json\` en la raíz del ZIP** con la configuración del chat. Al importar, el panel
+lo lee y **prellena los campos** en la pestaña Chat IA, así nadie tiene que copiar y pegar nada a mano.
 
 \`\`\`json
 {
-  "negocio": "Estudio de desarrollo de software en CDMX. Plataformas a la medida, integraciones y apps móviles. Proyectos desde 3 meses.",
-  "servicios": [
-    "Plataformas web a la medida",
-    "Apps móviles iOS y Android",
-    "Integraciones con ERP y CRM"
-  ],
-  "fuera_de_alcance": [
-    "Hosting y soporte de infraestructura",
-    "Diseño de marca",
-    "Campañas de publicidad"
-  ],
-  "no_responder": [
-    "preguntas generales de programación",
-    "traducciones o redacción de textos",
-    "tareas escolares",
-    "cualquier tema ajeno al proyecto que describe la persona"
-  ],
-  "idioma": "es"
+  "chat": {
+    "launcherLabel": "Cotiza aquí",
+    "welcome": "Te hago unas preguntas rápidas para preparar tu cotización. No doy precios automáticos: una persona revisa todo.",
+    "replacesForm": false,
+    "serviceOptions": [
+      "Software a la medida",
+      "App móvil",
+      "Página web o landing",
+      "Automatización de flujos",
+      "Integraciones y APIs"
+    ],
+    "scope": {
+      "negocio": "Estudio de desarrollo de software en CDMX. Plataformas a la medida, integraciones y apps móviles. Proyectos desde 3 meses.",
+      "servicios": [
+        "Plataformas web a la medida",
+        "Apps móviles iOS y Android",
+        "Integraciones con ERP y CRM"
+      ],
+      "fuera_de_alcance": [
+        "Hosting y soporte de infraestructura",
+        "Diseño de marca",
+        "Campañas de publicidad"
+      ],
+      "no_responder": [
+        "preguntas generales de programación",
+        "traducciones o redacción de textos",
+        "tareas escolares",
+        "cualquier tema ajeno al proyecto que describe la persona"
+      ],
+      "idioma": "es"
+    }
+  }
 }
 \`\`\`
 
-Qué hace cada campo:
+Cómo se aplica, para que no haya sorpresas:
+
+- **El archivo no se publica.** El panel lo saca del ZIP al importar; nunca queda accesible en el sitio.
+- **Solo rellena lo que esté vacío.** Si el administrador ya escribió algo en un campo, eso gana y el panel
+  avisa qué respetó. Volver a subir el ZIP no pisa configuración hecha a mano.
+- **No enciende el chat.** Cada conversación cuesta dinero, así que activarlo es siempre una decisión del
+  administrador desde el panel.
+- **No puede tocar proveedor, modelo, llaves ni topes.** Esos son ajustes de la plataforma, no de la landing.
+  Cualquier campo desconocido se ignora.
+- Si el JSON está mal formado, la subida sigue adelante y el panel lo reporta, en vez de fallar.
+
+Campos de \`chat\`:
+
+| Campo | Para qué sirve |
+|---|---|
+| \`launcherLabel\` | Texto del botón flotante. Máximo 60 caracteres. |
+| \`welcome\` | Primer mensaje del asistente. Vacío = un texto por defecto. |
+| \`replacesForm\` | \`true\` si el chat sustituye al formulario. Solo aplica la primera vez. |
+| \`serviceOptions\` | Opciones de la primera pregunta. Máximo 8, de 80 caracteres. |
+| \`scope\` | Las restricciones del asistente. Va tal cual al campo "a qué se dedica el negocio". |
+
+Campos de \`scope\`:
 
 | Campo | Para qué sirve |
 |---|---|
@@ -391,10 +426,9 @@ Qué hace cada campo:
 | \`no_responder\` | Temas ante los cuales el asistente devuelve cero preguntas y sigue con el guion fijo. |
 | \`idioma\` | Código del idioma en que deben salir las preguntas. |
 
-Reglas de este bloque:
+Reglas:
 
-- **Es JSON, no texto libre.** Si no parsea, el panel lo trata como descripción simple y pierdes las
-  restricciones. Valídalo antes de entregarlo.
+- **Valida el JSON antes de entregarlo.** Si no parsea, se pierden las restricciones.
 - Máximo 12 elementos por lista, 160 caracteres cada uno. Lo que sobre se recorta.
 - \`negocio\` se recorta a 900 caracteres.
 - **Sé específico en \`fuera_de_alcance\`.** Es lo que evita que el chat levante expectativas de servicios

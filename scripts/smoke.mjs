@@ -17,6 +17,7 @@ const { costOf, toMicros, fromMicros, formatUsd } = await import("../src/lib/ai/
 const { parseScope, buildPrompt, SYSTEM_PROMPT, MAX_DESCRIPTION_CHARS } =
   await import("../src/lib/ai/prompt.ts");
 const { listModels } = await import("../src/lib/ai/providers.ts");
+const { parseManifest, MANIFEST_FILENAME } = await import("../src/lib/landing-manifest.ts");
 
 let passed = 0;
 const pending = [];
@@ -300,6 +301,66 @@ test("the refusal rules live in the system prompt, not in site config", () => {
     siteName: "ACME",
   });
   assert.ok(prompt.includes("A qué se dedica:"));
+});
+
+/* ------------------------------ landing.json ----------------------------- */
+
+test("pulls landing.json out of the published files", () => {
+  const r = extractZip(zip({
+    "index.html": "x",
+    "landing.json": JSON.stringify({ chat: { launcherLabel: "Cotiza aquí" } }),
+  }), 100);
+  assert.ok(!r.files.some((f) => f.path === MANIFEST_FILENAME), "no debe servirse");
+  assert.ok(r.manifestJson);
+  assert.equal(JSON.parse(r.manifestJson).chat.launcherLabel, "Cotiza aquí");
+});
+
+test("an archive with only landing.json still needs an index", () => {
+  assert.throws(() => extractZip(zip({ "landing.json": "{}" }), 100), /index\.html/);
+});
+
+test("reads the chat block", () => {
+  const { manifest, error } = parseManifest(JSON.stringify({
+    chat: {
+      launcherLabel: "Cotiza aquí",
+      replacesForm: true,
+      serviceOptions: ["Web", "App"],
+      scope: { negocio: "Estudio", no_responder: ["tareas"] },
+    },
+  }));
+  assert.equal(error, null);
+  assert.equal(manifest.chat.launcherLabel, "Cotiza aquí");
+  assert.equal(manifest.chat.replacesForm, true);
+  assert.deepEqual(manifest.chat.serviceOptions, ["Web", "App"]);
+  assert.equal(manifest.chat.scope.negocio, "Estudio");
+});
+
+test("malformed JSON is reported, not thrown", () => {
+  const { manifest, error } = parseManifest("{ roto");
+  assert.equal(manifest, null);
+  assert.match(error, /no es JSON válido/);
+});
+
+test("caps what a manifest can inject", () => {
+  const { manifest } = parseManifest(JSON.stringify({
+    chat: {
+      launcherLabel: "x".repeat(500),
+      serviceOptions: Array.from({ length: 40 }, (_, i) => "s".repeat(200) + i),
+    },
+  }));
+  assert.equal(manifest.chat.launcherLabel.length, 60);
+  assert.equal(manifest.chat.serviceOptions.length, 8);
+  assert.ok(manifest.chat.serviceOptions.every((v) => v.length <= 80));
+});
+
+test("ignores fields it does not know", () => {
+  const { manifest, error } = parseManifest(JSON.stringify({
+    chat: { provider: "openai", monthlyLimit: 999999, enabled: true },
+    otraCosa: 1,
+  }));
+  assert.equal(error, null);
+  assert.equal(manifest.chat.launcherLabel, undefined);
+  assert.equal("enabled" in manifest.chat, false, "un ZIP no puede encender el chat");
 });
 
 /* --------------------------- model discovery ----------------------------- */

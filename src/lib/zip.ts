@@ -1,5 +1,6 @@
 import { unzipSync } from "fflate";
 import { ALLOWED_EXTENSIONS, contentTypeFor, extOf } from "@/lib/mime";
+import { MANIFEST_FILENAME } from "@/lib/landing-manifest";
 
 export type ExtractedFile = { path: string; bytes: Uint8Array; contentType: string };
 
@@ -8,6 +9,8 @@ export type ExtractResult = {
   skipped: string[];
   strippedRoot: string | null;
   totalBytes: number;
+  /** Raw contents of landing.json, if the archive shipped one. */
+  manifestJson: string | null;
 };
 
 /** Guard against zip bombs: refuse if the archive expands beyond this. */
@@ -92,6 +95,14 @@ export function extractZip(buffer: Uint8Array, maxFiles: number): ExtractResult 
     return { path, bytes: e.bytes, contentType: contentTypeFor(path) };
   });
 
+  // The manifest configures the site; it is not part of what gets served.
+  const manifestIndex = files.findIndex((f) => f.path === MANIFEST_FILENAME);
+  let manifestJson: string | null = null;
+  if (manifestIndex >= 0) {
+    manifestJson = new TextDecoder().decode(files[manifestIndex].bytes);
+    files.splice(manifestIndex, 1);
+  }
+
   if (!files.some((f) => f.path === "index.html")) {
     throw new Error(
       "No index.html at the root of the ZIP. Zip the *contents* of your landing folder, not the folder itself.",
@@ -103,5 +114,6 @@ export function extractZip(buffer: Uint8Array, maxFiles: number): ExtractResult 
     skipped,
     strippedRoot: roots.length ? roots.join("/") : null,
     totalBytes: files.reduce((n, f) => n + f.bytes.byteLength, 0),
+    manifestJson,
   };
 }
