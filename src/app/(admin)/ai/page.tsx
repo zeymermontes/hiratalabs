@@ -1,4 +1,4 @@
-import { desc, sql } from "drizzle-orm";
+import { desc, eq, gte, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { aiKeys, aiUsage, sites } from "@/lib/db/schema";
 import { encryptionConfigured } from "@/lib/crypto";
@@ -22,8 +22,10 @@ export default async function AiKeysPage() {
         failures: sql<number>`count(*) filter (where not ${aiUsage.ok})::int`,
       })
       .from(aiUsage)
-      .innerJoin(sites, sql`${sites.id} = ${aiUsage.siteId}`)
-      .where(sql`${aiUsage.createdAt} >= ${monthStart}`)
+      .innerJoin(sites, eq(sites.id, aiUsage.siteId))
+      // gte(), not a raw sql template: interpolating a Date into `sql` drops the
+      // column's type mapping and postgres.js then tries to serialize it as text.
+      .where(gte(aiUsage.createdAt, monthStart))
       .groupBy(sites.id, sites.name),
   ]);
 
