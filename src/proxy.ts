@@ -5,6 +5,9 @@ import { NextResponse, type NextRequest } from "next/server";
  * edge runtime, so no database or Node APIs here — the tenant route does that.
  */
 const ADMIN_HOST = (process.env.ADMIN_HOST ?? "").toLowerCase();
+// Render's own hostname always reaches the panel, so it stays usable before the
+// custom domain's DNS exists — and as a way back in if that DNS ever breaks.
+const RENDER_HOST = (process.env.RENDER_EXTERNAL_HOSTNAME ?? "").toLowerCase();
 
 function normalize(raw: string | null): string {
   if (!raw) return "";
@@ -19,8 +22,12 @@ export function proxy(req: NextRequest) {
   const host = normalize(req.headers.get("x-forwarded-host") ?? req.headers.get("host"));
   const { pathname, search } = req.nextUrl;
 
-  // The apex and www serve the home landing, so only ADMIN_HOST reaches the panel.
-  const isAdmin = host === ADMIN_HOST || host === "localhost" || host === "127.0.0.1";
+  // The apex and www serve the home landing, so the panel lives on its own hosts.
+  const isAdmin =
+    host === ADMIN_HOST ||
+    (RENDER_HOST !== "" && host === RENDER_HOST) ||
+    host === "localhost" ||
+    host === "127.0.0.1";
 
   if (isAdmin) {
     // Never let the tenant renderer be reached directly from the admin host.
