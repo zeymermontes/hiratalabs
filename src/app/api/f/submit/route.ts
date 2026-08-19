@@ -141,6 +141,7 @@ export async function POST(req: NextRequest) {
     fields,
     pageUrl: data._url || req.headers.get("referer") || undefined,
     submittedAt: row.createdAt,
+    replyTo: email,
   });
 
   await db

@@ -107,6 +107,8 @@ export const CHAT_RUNTIME = String.raw`
       ".close { margin-left: auto; background: none; border: 0; cursor: pointer; color: var(--on-ink); opacity: .7; font-size: 20px; line-height: 1; padding: 4px 6px; border-radius: 6px; }",
       ".close:hover { opacity: 1; }",
       ".log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }",
+      "@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }",
+      ".msg { animation: pop .22s cubic-bezier(.34,1.3,.64,1) both; }",
       ".msg { max-width: 84%; padding: 11px 14px; border-radius: var(--bubble); font-size: 14px; line-height: 1.55; white-space: pre-wrap; word-wrap: break-word; }",
       ".bot { align-self: flex-start; background: var(--ink); color: var(--on-ink); }",
       ".me { align-self: flex-end; background: var(--accent); color: var(--on-accent); }",
@@ -168,12 +170,24 @@ export const CHAT_RUNTIME = String.raw`
 
     /* ---------------------------- helpers ---------------------------- */
 
+    var scrollPending = false;
+    function scrollToEnd() {
+      if (scrollPending) return;
+      scrollPending = true;
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          scrollPending = false;
+          log.scrollTop = log.scrollHeight;
+        });
+      });
+    }
+
     function say(from, text) {
       var el = document.createElement("div");
       el.className = "msg " + (from === "me" ? "me" : "bot");
       el.textContent = text;
       log.appendChild(el);
-      log.scrollTop = log.scrollHeight;
+      scrollToEnd();
       return el;
     }
 
@@ -182,7 +196,7 @@ export const CHAT_RUNTIME = String.raw`
       el.className = "msg bot typing";
       el.innerHTML = "<i></i><i></i><i></i>";
       log.appendChild(el);
-      log.scrollTop = log.scrollHeight;
+      scrollToEnd();
       return el;
     }
 
@@ -200,6 +214,7 @@ export const CHAT_RUNTIME = String.raw`
         });
         opts.appendChild(b);
       });
+      scrollToEnd();
     }
 
     var pendingText = null;
@@ -209,6 +224,7 @@ export const CHAT_RUNTIME = String.raw`
       input.placeholder = placeholder || "Escribe tu respuesta…";
       input.value = "";
       pendingText = onAnswer;
+      scrollToEnd();
       if (panel.offsetParent !== null) input.focus();
     }
 
@@ -225,31 +241,53 @@ export const CHAT_RUNTIME = String.raw`
 
     /* ------------------------------ flow ------------------------------ */
 
+    /**
+     * Los mensajes del guion también pasan por el indicador de escritura. No
+     * hace falta técnicamente, pero sin esa pausa aparecen de golpe y no se
+     * alcanza a notar que el asistente respondió.
+     */
+    function botSay(text, done) {
+      opts.innerHTML = "";
+      bar.hidden = true;
+      var bubble = thinking();
+      var delay = Math.min(850, 280 + String(text).length * 7);
+
+      setTimeout(function () {
+        if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+        say("bot", text);
+        if (done) done();
+      }, delay);
+    }
+
     function start() {
       log.innerHTML = "";
       opts.innerHTML = "";
       reset();
       note.textContent = "";
-      say("bot", C.welcome || "Hola. Te hago unas preguntas rápidas para preparar tu cotización. No te doy precios automáticos — una persona revisa todo y te contesta.");
-      askService();
+      botSay(
+        C.welcome || "Hola. Te hago unas preguntas rápidas para preparar tu cotización. No te doy precios automáticos — una persona revisa todo y te contesta.",
+        askService
+      );
     }
 
     function askService() {
       var list = (C.serviceOptions && C.serviceOptions.length)
         ? C.serviceOptions
         : ["Página web", "Tienda en línea", "App móvil", "Software a la medida", "Otra cosa"];
-      say("bot", "¿Qué describe mejor lo que necesitas?");
-      choices(list, function (pick) {
-        state.answers.servicio = pick;
-        askDescription();
+      botSay("¿Qué describe mejor lo que necesitas?", function () {
+        choices(list, function (pick) {
+          state.answers.servicio = pick;
+          askDescription();
+        });
       });
     }
 
     function askDescription() {
-      say("bot", "Cuéntame en pocas palabras qué problema quieres resolver.");
-      askText("Describe tu proyecto…", function (text) {
-        state.answers.descripcion = text;
-        smartQuestions(text);
+      botSay("Cuéntame en pocas palabras qué problema quieres resolver.", function () {
+        askText("Describe tu proyecto…", function (text) {
+          state.answers.descripcion = text;
+          smartQuestions(text);
+        });
       });
     }
 
@@ -286,55 +324,58 @@ export const CHAT_RUNTIME = String.raw`
     function nextSmart() {
       if (state.queue.length === 0) return askTimeline();
       state.current = state.queue.shift();
-      say("bot", state.current);
-      askText("Tu respuesta…", function (text) {
-        state.extra.push({ label: state.current, text: text });
-        state.current = null;
-        nextSmart();
+      botSay(state.current, function () {
+        askText("Tu respuesta…", function (text) {
+          state.extra.push({ label: state.current, text: text });
+          state.current = null;
+          nextSmart();
+        });
       });
     }
 
     function askTimeline() {
-      say("bot", "¿Para cuándo te gustaría tenerlo listo?");
-      choices(TIMELINE, function (pick) {
-        state.answers.tiempo = pick;
-        askName();
+      botSay("¿Para cuándo te gustaría tenerlo listo?", function () {
+        choices(TIMELINE, function (pick) {
+          state.answers.tiempo = pick;
+          askName();
+        });
       });
     }
 
     function askName() {
-      say("bot", "¿Cómo te llamas?");
-      askText("Tu nombre…", function (text) {
-        state.answers.nombre = text;
-        askEmail();
+      botSay("¿Cómo te llamas?", function () {
+        askText("Tu nombre…", function (text) {
+          state.answers.nombre = text;
+          askEmail();
+        });
       });
     }
 
     function askEmail() {
-      say("bot", "¿A qué correo te contactamos?");
-      askText("tu@correo.com", function (text) {
-        if (!/^\S+@\S+\.\S+$/.test(text)) {
-          say("bot", "Ese correo no se ve válido. ¿Lo escribes de nuevo?");
-          return askEmail();
-        }
-        state.answers.email = text;
-        askPhone();
+      botSay("¿A qué correo te contactamos?", function () {
+        askText("tu@correo.com", function (text) {
+          if (!/^\S+@\S+\.\S+$/.test(text)) {
+            return botSay("Ese correo no se ve válido. ¿Lo escribes de nuevo?", askEmail);
+          }
+          state.answers.email = text;
+          askPhone();
+        });
       });
     }
 
     function askPhone() {
-      say("bot", "¿Y un WhatsApp o teléfono? Puedes escribir \"omitir\" si prefieres solo correo.");
-      askText("+52 …", function (text) {
-        if (/^(omitir|no|ninguno|skip)$/i.test(text.trim())) {
-          state.answers.telefono = "";
-          return finish();
-        }
-        if (text.replace(/\D/g, "").length < 7) {
-          say("bot", "Ese número se ve incompleto. ¿Lo intentas otra vez?");
-          return askPhone();
-        }
-        state.answers.telefono = text;
-        finish();
+      botSay("¿Y un WhatsApp o teléfono? Puedes escribir \"omitir\" si prefieres solo correo.", function () {
+        askText("+52 …", function (text) {
+          if (/^(omitir|no|ninguno|skip)$/i.test(text.trim())) {
+            state.answers.telefono = "";
+            return finish();
+          }
+          if (text.replace(/\D/g, "").length < 7) {
+            return botSay("Ese número se ve incompleto. ¿Lo intentas otra vez?", askPhone);
+          }
+          state.answers.telefono = text;
+          finish();
+        });
       });
     }
 
@@ -353,7 +394,36 @@ export const CHAT_RUNTIME = String.raw`
       return lines.join("\n");
     }
 
+    /**
+     * Antes de mandar nada, la persona ve el resumen y decide. Enviar en
+     * automático deja la sensación de haber perdido el control de sus datos y
+     * le quita la última oportunidad de corregir algo.
+     */
     function finish() {
+      bar.hidden = true;
+      opts.innerHTML = "";
+      botSay("Esto es lo que le voy a pasar al equipo:\n\n" + summary(), askToSend);
+    }
+
+    function askToSend() {
+      botSay("¿Lo envío así, o quieres agregar algo más?", function () {
+        choices(["Enviar información", "Agregar algo más"], function (pick) {
+          if (pick === "Agregar algo más") return addMore();
+          send();
+        });
+      });
+    }
+
+    function addMore() {
+      botSay("Claro. ¿Qué más quieres que sepan?", function () {
+        askText("Lo que quieras agregar…", function (text) {
+          state.extra.push({ label: "Nota adicional", text: text });
+          botSay("Anotado.", askToSend);
+        });
+      });
+    }
+
+    function send() {
       state.done = true;
       bar.hidden = true;
       opts.innerHTML = "";
@@ -383,15 +453,19 @@ export const CHAT_RUNTIME = String.raw`
         .then(function (res) {
           if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
           if (!res.r.ok || res.j.ok === false) throw new Error("send_failed");
-          say("bot", "Listo, esto es lo que voy a pasar al equipo:\n\n" + summary());
-          say("bot", "Nadie te va a mandar un precio automático: una persona revisa tu caso y te contesta por correo.");
-          note.textContent = "Recibido. Puedes cerrar esta ventana.";
-          choices(["Empezar de nuevo"], function () { start(); });
+          botSay("Enviado. Nadie te va a mandar un precio automático: una persona revisa tu caso y te contesta por correo.", function () {
+            note.textContent = "Recibido. Puedes cerrar esta ventana.";
+            choices(["Empezar de nuevo"], function () { start(); });
+          });
         })
         .catch(function () {
           if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
-          say("bot", "No pude enviar tus datos. ¿Intentamos otra vez?");
-          choices(["Reintentar"], function () { finish(); });
+          botSay("No pude enviar tus datos. ¿Intentamos otra vez?", function () {
+            choices(["Reintentar", "Agregar algo más"], function (pick) {
+              if (pick === "Agregar algo más") return addMore();
+              send();
+            });
+          });
         });
     }
 

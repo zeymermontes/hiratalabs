@@ -53,6 +53,8 @@ export type SubmissionEmail = {
   fields: Record<string, string>;
   pageUrl?: string;
   submittedAt: Date;
+  /** Only set when the submission carried an address to reply to. */
+  replyTo?: string;
 };
 
 function wordmark() {
@@ -117,13 +119,13 @@ export function renderHtml(m: SubmissionEmail) {
           </td>
         </tr>
 
-        <tr>
+        ${m.replyTo ? `<tr>
           <td style="padding:6px 28px 24px;">
             <div style="background:${BONE};border-left:3px solid ${LIME};padding:12px 14px;border-radius:0 8px 8px 0;font-family:${BODY};font-size:13px;color:${INK};line-height:1.5;">
-              Responde este correo para contestarle directamente a la persona.
+              Responde este correo y le llega a <strong>${esc(m.replyTo)}</strong>.
             </div>
           </td>
-        </tr>
+        </tr>` : ""}
 
         <tr>
           <td style="background:${INK};padding:16px 28px;">
@@ -156,8 +158,7 @@ export function renderText(m: SubmissionEmail) {
     "",
     ...lines,
     "",
-    "Responde este correo para contestarle directamente a la persona.",
-    "",
+    ...(m.replyTo ? [`Responde este correo y le llega a ${m.replyTo}.`, ""] : []),
     m.pageUrl ? `${m.host} · ${m.pageUrl}` : m.host,
     stamp(m.submittedAt),
   ].join("\n");
@@ -174,6 +175,7 @@ export async function sendSubmissionEmail(
 
   const { error } = await r.emails.send({
     from: env.resendFrom,
+    // El aviso del cuerpo solo aparece si de verdad hay a dónde responder.
     to,
     bcc: env.resendBcc ? [env.resendBcc] : undefined,
     replyTo: replyTo || undefined,
