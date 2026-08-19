@@ -37,9 +37,15 @@ function reply(req: NextRequest, wantsJson: boolean, ok: boolean, status: number
   if (wantsJson) {
     return NextResponse.json(ok ? { ok: true } : { ok: false, error }, { status });
   }
-  // No-JS fallback: bounce back to the page with a flag it can read.
+  // No-JS fallback: bounce back to the page with a flag it can read. The
+  // Location stays relative when there is no referer, because behind Render's
+  // proxy req.url is the container-internal host.
   const referer = req.headers.get("referer");
-  const back = referer ? new URL(referer) : new URL("/", req.url);
+  if (!referer) {
+    const flag = ok ? "sent=1" : `error=${encodeURIComponent(error ?? "1")}`;
+    return new NextResponse(null, { status: 303, headers: { Location: `/?${flag}` } });
+  }
+  const back = new URL(referer);
   back.searchParams.set(ok ? "sent" : "error", ok ? "1" : error ?? "1");
   return NextResponse.redirect(back, 303);
 }
