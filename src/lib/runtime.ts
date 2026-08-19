@@ -271,6 +271,10 @@ export const SITE_RUNTIME = `
     // Nothing free: stay bottom-right rather than land somewhere strange.
   }
 
+  // Marca de Hirata Labs en vector: pesa menos que un PNG en base64, escala en
+  // cualquier pantalla y no depende de los assets del sitio que la hospeda.
+  var GEAR = '<svg aria-hidden="true" focusable="false" viewBox="0 0 331.13 449.1"><path fill="#b7d546" d="M306.95,54.66l-62.11,62.11c-15.37-17.39-37.38-28.92-62.33-30.49-49.96-3.11-93.14,35.03-96.25,85.01-1.81,28.98,10.26,55.66,30.49,73.56l-62.11,62.11c-6.83-6.4-13.12-13.34-18.88-20.77l16.69-27.46c-3.48-5.32-6.64-10.86-9.42-16.61l-32.24.32c-5.19-13.1-8.8-27.01-10.78-41.45l28.27-15.47c-.13-1.65-.24-3.24-.27-4.89-.11-4.78.03-9.51.35-14.18L.32,150.66c2.11-14.39,5.94-28.25,11.32-41.35l32.16.73c2.86-5.7,6.13-11.18,9.7-16.45l-16.42-27.71c8.91-11.21,19.15-21.33,30.49-30.11l27.52,16.69c5.27-3.48,10.83-6.64,16.58-9.45l-.35-32.22c13.12-5.19,27.03-8.83,41.48-10.8l15.47,28.27c1.62-.11,3.24-.22,4.92-.24,4.78-.11,9.48,0,14.15.32L203.14.32c14.37,2.13,28.25,5.97,41.32,11.34l-.7,32.14c5.7,2.89,11.18,6.13,16.45,9.7l27.73-16.39c6.75,5.4,13.12,11.26,19.01,17.55Z"/><path fill="#6641e0" d="M24.19,394.44l62.11-62.11c15.37,17.39,37.38,28.92,62.33,30.49,49.96,3.11,93.14-35.03,96.25-85.01,1.81-28.98-10.26-55.66-30.49-73.56l62.11-62.11c6.83,6.4,13.12,13.34,18.88,20.77l-16.69,27.46c3.48,5.32,6.64,10.86,9.42,16.61l32.24-.32c5.19,13.1,8.8,27.01,10.78,41.45l-28.27,15.47c.13,1.65.24,3.24.27,4.89.11,4.78-.03,9.51-.35,14.18l28.03,15.8c-2.11,14.39-5.94,28.25-11.32,41.35l-32.16-.73c-2.86,5.7-6.13,11.18-9.7,16.45l16.42,27.71c-8.91,11.21-19.15,21.33-30.49,30.11l-27.52-16.69c-5.27,3.48-10.83,6.64-16.58,9.45l.35,32.22c-13.12,5.19-27.03,8.83-41.48,10.8l-15.47-28.27c-1.62.11-3.24.22-4.92.24-4.78.11-9.48,0-14.15-.32l-15.8,28.03c-14.37-2.13-28.25-5.97-41.32-11.34l.7-32.14c-5.7-2.89-11.18-6.13-16.45-9.7l-27.73,16.39c-6.75-5.4-13.12-11.26-19.01-17.55Z"/></svg>';
+
   function poweredBy() {
     if (!S.poweredBy) return;
     if (document.getElementById("__platform_badge__")) return;
@@ -285,7 +289,8 @@ export const SITE_RUNTIME = `
     link.href = S.poweredByUrl || "/";
     link.target = "_blank";
     link.rel = "noopener";
-    link.textContent = "Powered by " + (S.poweredByName || "");
+    link.innerHTML = GEAR;
+    link.appendChild(document.createTextNode("Powered by " + (S.poweredByName || "")));
 
     var style = document.createElement("style");
     style.textContent = [
@@ -302,6 +307,9 @@ export const SITE_RUNTIME = `
       "  backdrop-filter: saturate(180%) blur(8px);",
       "  opacity: .72; transition: opacity .18s ease, transform .18s ease, bottom .2s ease, left .2s ease;",
       "}",
+      // 18px: por debajo de eso los dientes del engrane se empastan y la marca
+      // se lee como una mancha de color.
+      "a svg { height: 18px; width: auto; display: block; flex: none; }",
       "a:hover, a:focus-visible { opacity: 1; transform: translateY(-1px); }",
       "a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }",
       "@media (prefers-reduced-motion: reduce) { a { transition: none; } }",
