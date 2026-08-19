@@ -1,42 +1,22 @@
-"use client";
+import { LoginForm } from "./login-form";
 
-import { useActionState } from "react";
-import { requestMagicLink, type LoginState } from "./actions";
+export const dynamic = "force-dynamic";
 
-export default function LoginPage() {
-  const [state, action, pending] = useActionState<LoginState, FormData>(requestMagicLink, {});
+const MESSAGES: Record<string, string> = {
+  link_invalid:
+    "Ese enlace ya se usó o expiró. Los enlaces sirven una sola vez — pide uno nuevo.",
+  missing_code:
+    "El enlace llegó incompleto. Pide uno nuevo y ábrelo directo desde el correo.",
+  exchange_failed:
+    "No se pudo validar el enlace. Ábrelo en el mismo navegador donde lo pediste: la sesión se inicia ahí.",
+  not_allowed: "Ese correo no tiene acceso al panel.",
+};
 
-  return (
-    <main className="grid min-h-screen place-items-center px-6">
-      <div className="card w-full max-w-sm p-8">
-        <div className="mb-6">
-          <div className="mb-4 h-8 w-8 rounded-lg bg-neutral-900" />
-          <h1 className="text-lg font-semibold tracking-tight">Panel de landings</h1>
-          <p className="mt-1 text-sm text-neutral-500">Te enviamos un enlace de acceso por correo.</p>
-        </div>
-
-        {state.ok ? (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-            Listo. Revisa tu correo y abre el enlace para entrar.
-          </div>
-        ) : (
-          <form action={action} className="space-y-4">
-            <div>
-              <label className="label" htmlFor="email">Correo</label>
-              <input
-                id="email" name="email" type="email" required autoFocus
-                autoComplete="email" placeholder="tu@empresa.com" className="input"
-              />
-            </div>
-            {state.error ? (
-              <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{state.error}</p>
-            ) : null}
-            <button type="submit" disabled={pending} className="btn-primary w-full">
-              {pending ? "Enviando…" : "Enviar enlace"}
-            </button>
-          </form>
-        )}
-      </div>
-    </main>
-  );
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+  return <LoginForm initialError={error ? MESSAGES[error] ?? null : null} />;
 }
