@@ -136,6 +136,12 @@ export const CHAT_RUNTIME = String.raw`
       round ? ".launcher .dot { display: none; }" : "",
       "@media (max-width: 460px) {",
       "  .panel { width: calc(100vw - 24px); height: calc(100vh - 90px); }",
+      "  .launcher { padding: 11px 16px; font-size: 13px; }",
+      // Un círculo de 104px se come el 27% del ancho de un teléfono y tapa
+      // contenido. En pantalla chica vuelve a la píldora, que dice lo mismo
+      // ocupando una fracción. En escritorio se respeta la forma elegida.
+      round ? "  .launcher { width: auto; height: auto; border-radius: 999px; padding: 11px 16px; flex-direction: row; gap: 8px; font-size: 12.5px; line-height: 1; text-align: left; }" : "",
+      round ? "  .launcher .dot { display: inline-block; }" : "",
       "}",
       "@media (prefers-reduced-motion: reduce) { *, .launcher, .launcher::after { animation: none !important; transition: none !important; } }",
       "@media print { :host { display: none; } }"
