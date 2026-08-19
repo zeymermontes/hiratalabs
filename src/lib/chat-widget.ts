@@ -132,7 +132,10 @@ export const CHAT_RUNTIME = String.raw`
       ".bar button:disabled { opacity: .45; cursor: not-allowed; }",
       ".bar[hidden] { display: none; }",
       ".note { padding: 0 16px 14px; font-size: 11.5px; color: var(--ink); opacity: .65; line-height: 1.5; }",
-      round ? ".launcher { width: 104px; height: 104px; border-radius: 50%; padding: 10px; flex-direction: column; gap: 0; font-size: 13px; line-height: 1.15; text-align: center; }" : "",
+      // 76px, no 104: un lanzador flotante compite con el contenido, y los de
+      // referencia (Intercom, Crisp) van entre 56 y 64. Este lleva etiqueta, así
+      // que necesita algo más, pero 104 dominaba la pantalla incluso en tablet.
+      round ? ".launcher { width: 76px; height: 76px; border-radius: 50%; padding: 8px; flex-direction: column; gap: 0; font-size: 12px; line-height: 1.15; text-align: center; }" : "",
       round ? ".launcher .dot { display: none; }" : "",
       "@media (max-width: 460px) {",
       "  .panel { width: calc(100vw - 24px); height: calc(100vh - 90px); }",
