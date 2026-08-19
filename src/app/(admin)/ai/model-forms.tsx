@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import {
   addAiModel, deleteAiModel, listProviderModels, setDefaultAiModel, updateAiModelPrice,
   type ActionState,
@@ -31,14 +31,20 @@ const ANTHROPIC_PRICES: Record<string, [number, number]> = {
   "claude-haiku-4-5": [1, 5],
 };
 
-export function AddModelForm() {
+export function AddModelForm({ providersWithKeys }: { providersWithKeys: string[] }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(addAiModel, {});
-  const [provider, setProvider] = useState("anthropic");
+  // Start on a provider that actually has a key, so the form is usable on arrival.
+  const [provider, setProvider] = useState(
+    () => providersWithKeys[0] ?? "anthropic",
+  );
   const [available, setAvailable] = useState<string[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, startLoading] = useTransition();
+  const [manual, setManual] = useState(false);
   const [model, setModel] = useState("");
   const [prices, setPrices] = useState({ input: "0", output: "0" });
+
+  const hasKey = providersWithKeys.includes(provider);
 
   function chooseModel(value: string) {
     setModel(value);
@@ -54,6 +60,26 @@ export function AddModelForm() {
       else setAvailable(res.models ?? []);
     });
   }
+
+  // Pull the list as soon as a provider with a key is selected: waiting for a
+  // click left the field looking like it had no options at all.
+  useEffect(() => {
+    setAvailable(null);
+    setModel("");
+    setLoadError(null);
+    setManual(false);
+    if (!providersWithKeys.includes(provider)) return;
+
+    let cancelled = false;
+    startLoading(async () => {
+      const res = await listProviderModels(provider as "anthropic");
+      if (cancelled) return;
+      if (res.error) setLoadError(res.error);
+      else setAvailable(res.models ?? []);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider]);
 
   return (
     <form action={action} className="card space-y-4 p-5">
@@ -71,9 +97,15 @@ export function AddModelForm() {
 
         <Field
           label="Modelo"
-          hint={available ? `${available.length} disponibles en tu cuenta.` : "Trae la lista o escribe el identificador."}
+          hint={
+            loading ? "Consultando al proveedor…"
+              : !hasKey ? "Agrega primero una llave de este proveedor."
+              : available ? `${available.length} disponibles en tu cuenta.`
+              : loadError ? "No se pudo traer la lista; escribe el identificador."
+              : "Escribe el identificador exacto."
+          }
         >
-          {available ? (
+          {available && !manual ? (
             <select
               name="model" required value={model} className="input font-mono text-xs"
               onChange={(e) => chooseModel(e.target.value)}
@@ -106,18 +138,16 @@ export function AddModelForm() {
       </div>
 
       <div className="flex flex-wrap items-center gap-4">
-        <button type="button" onClick={load} disabled={loading} className="btn-secondary">
-          {loading ? "Consultando…" : available ? "Actualizar lista" : "Traer modelos del proveedor"}
+        <button type="button" onClick={load} disabled={loading || !hasKey} className="btn-secondary">
+          {loading ? "Consultando…" : available ? "Actualizar lista" : "Reintentar lista"}
         </button>
-        {available ? (
-          <button
-            type="button"
-            onClick={() => { setAvailable(null); setModel(""); }}
-            className="text-xs text-neutral-500 underline-offset-2 hover:underline"
-          >
-            escribirlo a mano
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={() => { setManual((v) => !v); setModel(""); }}
+          className="text-xs text-neutral-500 underline-offset-2 hover:underline"
+        >
+          {manual && available ? "elegir de la lista" : "escribirlo a mano"}
+        </button>
         <label className="flex items-center gap-2 text-sm text-neutral-700">
           <input type="checkbox" name="isDefault" className="h-4 w-4 rounded border-neutral-300" />
           Usarlo por defecto para este proveedor
@@ -130,9 +160,9 @@ export function AddModelForm() {
         {loadError ? <span className="text-sm text-red-600">{loadError}</span> : null}
       </div>
       <p className="hint">
-        &quot;Traer modelos&quot; le pregunta al proveedor con tu propia llave, así que la lista es la que
-        tu cuenta puede usar de verdad. Los precios sí van a mano —solo los de Anthropic se prellenan— porque
-        ningún proveedor los expone por API y un precio inventado se traduce en un cobro mal hecho.
+        La lista se consulta al proveedor con tu propia llave, así que es la que tu cuenta puede usar de
+        verdad. Los precios sí van a mano —solo los de Anthropic se prellenan— porque ningún proveedor los
+        expone por API y un precio inventado se traduce en un cobro mal hecho.
       </p>
     </form>
   );

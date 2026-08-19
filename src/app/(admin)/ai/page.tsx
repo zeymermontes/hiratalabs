@@ -81,7 +81,7 @@ export default async function AiKeysPage() {
             alimentan el cálculo de consumo por sitio.
           </p>
           <div className="space-y-4">
-            <AddModelForm />
+            <AddModelForm providersWithKeys={Array.from(new Set(keys.map((k) => k.provider)))} />
             {models.length === 0 ? (
               <Empty
                 title="Sin modelos configurados"

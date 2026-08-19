@@ -16,16 +16,29 @@ const { CHAT_RUNTIME } = await import("../src/lib/chat-widget.ts");
 const { costOf, toMicros, fromMicros, formatUsd } = await import("../src/lib/ai/pricing.ts");
 const { parseScope, buildPrompt, SYSTEM_PROMPT, MAX_DESCRIPTION_CHARS } =
   await import("../src/lib/ai/prompt.ts");
+const { listModels } = await import("../src/lib/ai/providers.ts");
 
 let passed = 0;
+const pending = [];
 function test(name, fn) {
+  const record = (err) => {
+    if (err) {
+      console.error(`FAIL  ${name}\n      ${err.message}`);
+      process.exitCode = 1;
+    } else {
+      passed++;
+      console.log(`  ok  ${name}`);
+    }
+  };
   try {
-    fn();
-    passed++;
-    console.log(`  ok  ${name}`);
+    const out = fn();
+    if (out && typeof out.then === "function") {
+      pending.push(out.then(() => record(), record));
+    } else {
+      record();
+    }
   } catch (err) {
-    console.error(`FAIL  ${name}\n      ${err.message}`);
-    process.exitCode = 1;
+    record(err);
   }
 }
 
@@ -289,4 +302,57 @@ test("the refusal rules live in the system prompt, not in site config", () => {
   assert.ok(prompt.includes("A qué se dedica:"));
 });
 
+/* --------------------------- model discovery ----------------------------- */
+
+async function withStubbedFetch(body, fn) {
+  const original = globalThis.fetch;
+  const seen = [];
+  globalThis.fetch = async (url, init) => {
+    seen.push({ url: String(url), headers: init?.headers ?? {} });
+    return new Response(JSON.stringify(body), { status: 200 });
+  };
+  try {
+    return { result: await fn(), seen };
+  } finally {
+    globalThis.fetch = original;
+  }
+}
+
+const openAiShape = { object: "list", data: [{ id: "modelo-b" }, { id: "modelo-a" }] };
+
+for (const [provider, body, expected] of [
+  ["anthropic", openAiShape, ["modelo-b", "modelo-a"]],
+  ["openai", openAiShape, ["modelo-b", "modelo-a"]],
+  ["groq", openAiShape, ["modelo-b", "modelo-a"]],
+  ["deepseek", openAiShape, ["modelo-b", "modelo-a"]],
+  ["google", { models: [{ name: "models/gemini-uno" }, { name: "models/gemini-dos" }] },
+    ["gemini-uno", "gemini-dos"]],
+]) {
+  test(`lists models for ${provider}`, async () => {
+    const { result, seen } = await withStubbedFetch(body, () => listModels(provider, "llave-de-prueba"));
+    assert.deepEqual(result, expected);
+    assert.equal(seen.length, 1);
+    assert.ok(seen[0].url.startsWith("https://"), "debe pegarle a una URL https");
+  });
+}
+
+test("anthropic sends its own auth headers", async () => {
+  const { seen } = await withStubbedFetch(openAiShape, () => listModels("anthropic", "sk-prueba"));
+  assert.equal(seen[0].headers["x-api-key"], "sk-prueba");
+  assert.ok(seen[0].headers["anthropic-version"]);
+});
+
+test("openai-compatible providers send a bearer token", async () => {
+  for (const provider of ["openai", "groq", "deepseek"]) {
+    const { seen } = await withStubbedFetch(openAiShape, () => listModels(provider, "sk-prueba"));
+    assert.equal(seen[0].headers.Authorization, "Bearer sk-prueba");
+  }
+});
+
+test("google passes the key in the query string", async () => {
+  const { seen } = await withStubbedFetch({ models: [] }, () => listModels("google", "abc 123"));
+  assert.ok(seen[0].url.includes("key=abc%20123"));
+});
+
+await Promise.all(pending);
 console.log(`\n${passed} checks passed`);
