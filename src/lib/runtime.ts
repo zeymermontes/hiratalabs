@@ -208,26 +208,22 @@ export const SITE_RUNTIME = `
     var vw = window.innerWidth;
     var vh = window.innerHeight;
 
-    // An author can pin it explicitly: <body data-site-badge="left">
+    /* Abajo a la IZQUIERDA por defecto: la esquina derecha se llena rápido con
+       el lanzador del chat, el botón de WhatsApp y lo que traiga la landing.
+       Una landing puede forzar la derecha con <body data-site-badge="right">. */
     var pinned = (document.body.getAttribute("data-site-badge") || "").toLowerCase();
+    var ladoBase = pinned === "right" ? "right" : "left";
 
     link.style.left = "auto";
+    link.style.right = "auto";
     link.style.top = "auto";
-    link.style.right = M + "px";
+    link.style[ladoBase] = M + "px";
     link.style.bottom = M + "px";
 
     var size = link.getBoundingClientRect();
     var w = size.width;
     var h = size.height;
     if (!w || !h) return;
-
-    if (pinned === "left" || pinned === "right") {
-      if (pinned === "left") {
-        link.style.right = "auto";
-        link.style.left = M + "px";
-      }
-      return;
-    }
 
     var blockers = obstacles(mount);
     if (blockers.length === 0) return;
@@ -256,19 +252,24 @@ export const SITE_RUNTIME = `
       return null;
     }
 
-    var rightBottom = freeSide("right");
-    if (rightBottom !== null) {
-      link.style.bottom = Math.round(rightBottom) + "px";
+    // Se intenta el lado elegido; si esa esquina está ocupada se prueba la otra
+    // antes de rendirse, en vez de quedar encimado.
+    var otro = ladoBase === "left" ? "right" : "left";
+
+    var abajo = freeSide(ladoBase);
+    if (abajo !== null) {
+      link.style.bottom = Math.round(abajo) + "px";
       return;
     }
 
-    var leftBottom = freeSide("left");
-    if (leftBottom !== null) {
-      link.style.right = "auto";
-      link.style.left = M + "px";
-      link.style.bottom = Math.round(leftBottom) + "px";
+    var abajoOtro = freeSide(otro);
+    if (abajoOtro !== null) {
+      link.style[ladoBase] = "auto";
+      link.style[otro] = M + "px";
+      link.style.bottom = Math.round(abajoOtro) + "px";
     }
-    // Nothing free: stay bottom-right rather than land somewhere strange.
+    // Si ningún lado está libre, se queda donde empezó en vez de aterrizar en
+    // un lugar raro.
   }
 
   // Marca de Hirata Labs en vector: pesa menos que un PNG en base64, escala en
@@ -338,9 +339,116 @@ export const SITE_RUNTIME = `
     [600, 1500, 4000, 9000].forEach(function (ms) { setTimeout(reposition, ms); });
   }
 
+  /**
+   * Botón flotante de WhatsApp. Se dibuja antes que el chip para que la
+   * detección de estorbos del chip lo vea y se acomode encima en vez de taparlo.
+   * El número y el mensaje salen del panel: si no hay número, no se dibuja.
+   */
+  function whatsappFab() {
+    if (!S.whatsappFab) return;
+    var href = S.whatsappHref;
+    if (!href) return;
+    if (document.getElementById("__site_wa_fab__")) return;
+
+    var mount = document.createElement("div");
+    mount.id = "__site_wa_fab__";
+    // Fijo en el contenedor, no dentro del shadow: obstacles() recorre el
+    // documento y no entra al shadow DOM, así que un div normal era invisible
+    // para el chip y los dos terminaban encimados.
+    var LADO = window.innerWidth <= 460 ? 52 : 56;
+    mount.style.cssText =
+      "position:fixed;right:18px;bottom:18px;z-index:2147482000;width:" +
+      LADO + "px;height:" + LADO + "px";
+    document.body.appendChild(mount);
+
+    // Shadow DOM: el CSS de la landing no puede reestilizarlo ni romperlo.
+    var root = mount.attachShadow ? mount.attachShadow({ mode: "open" }) : mount;
+    var link = document.createElement("a");
+    link.href = href;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.setAttribute("aria-label", "Escríbenos por WhatsApp");
+    link.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+      '<path fill="currentColor" d="M12.04 2A9.9 9.9 0 0 0 2.13 11.9c0 1.75.46 3.46 1.32 4.96L2 22l5.28-1.38a9.86 9.86 0 0 0 4.76 1.21h.01a9.9 9.9 0 0 0 9.9-9.9A9.9 9.9 0 0 0 12.04 2Zm0 18.02h-.01a8.2 8.2 0 0 1-4.18-1.15l-.3-.18-3.12.82.83-3.05-.2-.31a8.2 8.2 0 1 1 15.19-4.35 8.21 8.21 0 0 1-8.21 8.22Zm4.5-6.15c-.24-.12-1.46-.72-1.68-.8-.23-.09-.39-.13-.56.12-.16.24-.64.8-.78.97-.14.16-.29.18-.53.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.7-.14-.25-.02-.38.1-.5.11-.11.25-.29.37-.44.13-.15.17-.25.25-.42.09-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.41-.56-.42h-.47c-.16 0-.43.06-.65.3-.22.25-.85.84-.85 2.04 0 1.2.87 2.36.99 2.53.12.16 1.71 2.6 4.14 3.64.58.25 1.03.4 1.38.51.58.19 1.11.16 1.53.1.47-.07 1.46-.6 1.66-1.18.21-.58.21-1.07.15-1.18-.06-.1-.22-.16-.46-.28Z"/>' +
+      "</svg>";
+
+    var style = document.createElement("style");
+    style.textContent = [
+      ":host { all: initial; }",
+      ":host { display: block; width: 100%; height: 100%; }",
+      "a {",
+      "  display: flex; align-items: center; justify-content: center;",
+      "  width: 100%; height: 100%; border-radius: 50%;",
+      "  background: #25D366; color: #fff; text-decoration: none;",
+      "  box-shadow: 0 6px 20px rgba(0,0,0,.28);",
+      "  transition: transform .18s ease, box-shadow .18s ease;",
+      "}",
+      "a:hover, a:focus-visible { transform: translateY(-2px) scale(1.05); box-shadow: 0 10px 26px rgba(0,0,0,.34); }",
+      "a:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }",
+      "svg { width: 32px; height: 32px; display: block; }",
+      "@media (max-width: 460px) { svg { width: 29px; height: 29px; } }",
+      "@media (prefers-reduced-motion: reduce) { a { transition: none; } }",
+      "@media print { a { display: none; } }",
+    ].join("\\n");
+
+    root.appendChild(style);
+    root.appendChild(link);
+
+    /* El lanzador del chat vive en la misma esquina y se inyecta después que
+       este botón, así que se busca hueco hacia arriba en vez de encimarse. */
+    var M = 18;
+    function acomodar() {
+      mount.style.bottom = M + "px";
+      var caja = mount.getBoundingClientRect();
+      if (!caja.width || !caja.height) return;
+
+      var estorbos = obstacles(mount);
+      var abajo = M;
+      // Hasta 4 saltos: con más de cuatro widgets flotantes el problema es otro.
+      for (var intento = 0; intento < 4; intento++) {
+        var box = {
+          left: window.innerWidth - M - caja.width,
+          right: window.innerWidth - M,
+          top: window.innerHeight - abajo - caja.height,
+          bottom: window.innerHeight - abajo,
+        };
+        var choco = false;
+        for (var i = 0; i < estorbos.length; i++) {
+          if (overlaps(box, estorbos[i], 10)) {
+            abajo = window.innerHeight - estorbos[i].top + 10;
+            choco = true;
+            break;
+          }
+        }
+        if (!choco) break;
+      }
+      mount.style.bottom = Math.round(abajo) + "px";
+    }
+
+    var temporizador = null;
+    function reacomodar() {
+      if (temporizador) clearTimeout(temporizador);
+      temporizador = setTimeout(acomodar, 120);
+    }
+
+    acomodar();
+    window.addEventListener("resize", reacomodar);
+
+    // El widget de chat y las barras de cookies llegan después de la carga, así
+    // que se sigue observando un rato en vez de decidir una sola vez.
+    if (window.MutationObserver) {
+      var mo = new MutationObserver(reacomodar);
+      mo.observe(document.body, { childList: true });
+      setTimeout(function () { mo.disconnect(); }, 20000);
+    }
+    [600, 1500, 4000, 9000].forEach(function (ms) { setTimeout(reacomodar, ms); });
+  }
+
   function init() {
     apply(document);
     each(document, "form[data-site-form]", bindForm);
+    whatsappFab();
     poweredBy();
   }
 

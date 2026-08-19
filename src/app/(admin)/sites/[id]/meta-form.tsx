@@ -10,7 +10,7 @@ export function MetaForm({
   site: {
     id: string; name: string; slug: string;
     maintenanceTitle: string | null; maintenanceMessage: string | null;
-    notes: string | null; showPoweredBy: boolean; poweredByAutoOff: boolean;
+    notes: string | null; showPoweredBy: boolean; poweredByAutoOff: boolean; showWhatsappFab: boolean;
   };
   rootDomain: string;
 }) {
@@ -46,6 +46,25 @@ export function MetaForm({
                 cliente. Al validarse un dominio propio se apaga solo una vez; si lo vuelves a
                 marcar, se queda encendido. El sitio principal nunca lo lleva.
                 {site.poweredByAutoOff ? " Aquí ya ocurrió ese apagado automático." : ""}
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div className="border-t border-neutral-200 pt-4">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox" name="showWhatsappFab" defaultChecked={site.showWhatsappFab}
+              className="mt-0.5 h-4 w-4 rounded border-neutral-300"
+            />
+            <span>
+              <span className="text-sm font-medium text-neutral-900">
+                Botón flotante de WhatsApp
+              </span>
+              <span className="hint mt-0.5 block">
+                Círculo verde abajo a la derecha, con el número de la pestaña Contacto. Si no hay
+                número capturado no aparece, aunque esté marcado. Se acomoda solo para no encimarse
+                con el chat de IA ni con el chip.
               </span>
             </span>
           </label>

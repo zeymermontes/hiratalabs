@@ -59,7 +59,12 @@ async function lookup(host: string): Promise<ResolvedSite | null> {
 
   const poweredBy = shouldShowPoweredBy(site.showPoweredBy, slug);
 
-  return { site, version, config: publicSiteConfig(site, settings, host, { poweredBy, chat }) };
+  return {
+    site, version,
+    config: publicSiteConfig(site, settings, host, {
+      poweredBy, chat, whatsappFab: site.showWhatsappFab,
+    }),
+  };
 }
 
 /**

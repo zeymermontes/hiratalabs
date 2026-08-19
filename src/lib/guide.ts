@@ -171,8 +171,42 @@ Todos viven también en \`window.__SITE__\` por si necesitas leerlos desde tu pr
 | \`site.addressHref\` | Enlace a Google Maps: el que se capturó en el panel, o una búsqueda de la dirección si no hay |
 | \`site.mapsUrl\` | Solo el enlace capturado, vacío si no hay |
 | \`site.socials.<red>\` | URL de cada red: ${socials} |
+| \`site.whatsappFab\` | Si el panel encendió el botón flotante de WhatsApp |
 | \`site.year\` | Año actual, útil para el footer |
 | \`site.name\` / \`site.host\` | Nombre interno del sitio y dominio donde se sirve |
+
+### Datos de contacto en \`landing.json\`
+
+Si el diseño ya trae escritos el teléfono, el correo o las redes, decláralos y el
+panel los prellena al importar el ZIP. **Solo rellena lo que esté vacío**: nunca
+pisa un dato que alguien ya capturó, porque el panel es la fuente en vivo y el
+ZIP es una foto del momento del diseño. Después se corrigen o se borran desde
+Contacto.
+
+\`\`\`json
+{
+  "contacto": {
+    "brandName": "La Rica Dona",
+    "email": "hola@ejemplo.com",
+    "phone": "667 751 6050",
+    "whatsapp": "526677516050",
+    "address": "Calle y colonia, Culiacán",
+    "mapsUrl": "https://maps.app.goo.gl/…",
+    "socials": { "facebook": "https://facebook.com/marca", "instagram": "https://instagram.com/marca" }
+  }
+}
+\`\`\`
+
+Las redes solo se aceptan con \`http(s)\`, y un correo sin \`@\` o un enlace de
+Maps sin esquema se descartan en vez de guardarse mal.
+
+### Botón flotante de WhatsApp
+
+Se enciende desde Publicación; no hay que maquetarlo. Aparece abajo a la derecha
+y **solo si hay número capturado**, así que encenderlo sin datos no deja un botón
+muerto. Se acomoda solo para no encimarse con el chat de IA ni con el chip, pero
+si tu diseño ya tiene su propio botón flotante en esa esquina, déjale un hueco
+de unos 76 px.
 
 Valores personalizados configurados hoy en el panel:
 

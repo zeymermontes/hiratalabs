@@ -85,6 +85,7 @@ export function publicSiteConfig(
   host: string,
   options: {
     poweredBy?: boolean;
+    whatsappFab?: boolean;
     chat?: {
       enabled: boolean;
       replacesForm: boolean;
@@ -120,6 +121,8 @@ export function publicSiteConfig(
     year: new Date().getFullYear(),
     /** Shown only on platform subdomains, never on a client's own domain. */
     poweredBy: options.poweredBy === true,
+    /** Botón flotante de WhatsApp: solo si el admin lo encendió Y hay número. */
+    whatsappFab: options.whatsappFab === true && Boolean(waDigits),
     poweredByName: env.platformName,
     poweredByUrl: `https://${env.rootDomain}`,
     chat: options.chat

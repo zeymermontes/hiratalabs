@@ -43,6 +43,8 @@ export const sites = pgTable("sites", {
    * that from happening twice, so the admin can turn it back on and have it stay.
    */
   poweredByAutoOff: boolean("powered_by_auto_off").notNull().default(false),
+  /** Floating WhatsApp button. The runtime skips it when no number is set. */
+  showWhatsappFab: boolean("show_whatsapp_fab").notNull().default(false),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

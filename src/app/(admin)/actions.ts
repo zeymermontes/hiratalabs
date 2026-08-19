@@ -69,8 +69,11 @@ async function applyManifest(siteId: string, raw: string): Promise<string> {
 
   const { manifest, error } = parseManifest(raw);
   if (error) return error;
+
+  const notaContacto = await applyContacto(siteId, manifest?.contacto);
+
   const chat = manifest?.chat;
-  if (!chat) return "";
+  if (!chat) return notaContacto;
 
   const [current] = await db.select().from(siteChat).where(eq(siteChat.siteId, siteId));
 
@@ -108,15 +111,73 @@ async function applyManifest(siteId: string, raw: string): Promise<string> {
     applied.push("si el chat reemplaza el formulario");
   }
 
+  const unir = (a: string, b: string) => [a, b].filter(Boolean).join(" ");
+
   if (Object.keys(values).length === 0) {
-    return skipped.length ? describeApplied([], skipped) : "";
+    return unir(notaContacto, skipped.length ? describeApplied([], skipped) : "");
   }
 
   values.updatedAt = new Date();
   await db.insert(siteChat).values({ siteId, ...values })
     .onConflictDoUpdate({ target: siteChat.siteId, set: values });
 
-  return describeApplied(applied, skipped);
+  return unir(notaContacto, describeApplied(applied, skipped));
+}
+
+/**
+ * Prellena la pestaña Contacto con lo que la plantilla ya traía escrito.
+ * Solo rellena lo vacío: un dato que el admin ya capturó nunca se pisa, porque
+ * el panel es la fuente en vivo y el ZIP es una foto del momento del diseño.
+ */
+async function applyContacto(
+  siteId: string,
+  datos: import("@/lib/landing-manifest").ManifestContacto | undefined,
+): Promise<string> {
+  if (!datos) return "";
+
+  const [actual] = await db.select().from(siteSettings).where(eq(siteSettings.siteId, siteId));
+  const values: Record<string, unknown> = {};
+  const puestos: string[] = [];
+
+  const campos: [keyof typeof datos, string, string][] = [
+    ["brandName", "brandName", "el nombre de marca"],
+    ["email", "email", "el correo"],
+    ["phone", "phone", "el teléfono"],
+    ["whatsapp", "whatsapp", "el WhatsApp"],
+    ["address", "address", "la dirección"],
+    ["mapsUrl", "mapsUrl", "el enlace de Maps"],
+  ];
+  for (const [clave, columna, etiqueta] of campos) {
+    const entra = datos[clave];
+    if (typeof entra !== "string" || !entra) continue;
+    const existente = actual?.[columna as keyof typeof actual];
+    if (existente) continue;
+    values[columna] = columna === "mapsUrl" ? safeUrl(entra) : entra;
+    puestos.push(etiqueta);
+  }
+
+  // Las redes se fusionan por llave: se agregan las que faltan sin tocar las
+  // que ya estaban.
+  if (datos.socials) {
+    const previas = actual?.socials ?? {};
+    const merge = { ...previas };
+    let nuevas = 0;
+    for (const [k, v] of Object.entries(datos.socials)) {
+      if (!merge[k]) { merge[k] = v; nuevas++; }
+    }
+    if (nuevas > 0) {
+      values.socials = merge;
+      puestos.push(`${nuevas} red${nuevas === 1 ? "" : "es"} social${nuevas === 1 ? "" : "es"}`);
+    }
+  }
+
+  if (puestos.length === 0) return "";
+
+  values.updatedAt = new Date();
+  await db.insert(siteSettings).values({ siteId, ...values })
+    .onConflictDoUpdate({ target: siteSettings.siteId, set: values });
+
+  return `El ZIP traía datos de contacto: se prellenó ${puestos.join(", ")}. Revísalos en Contacto.`;
 }
 
 /* ------------------------------- sites ---------------------------------- */
@@ -154,6 +215,7 @@ export async function updateSiteMeta(_prev: ActionState, form: FormData): Promis
   await db.update(sites).set({
     name, slug,
     showPoweredBy: form.get("showPoweredBy") === "on",
+    showWhatsappFab: form.get("showWhatsappFab") === "on",
     maintenanceTitle: String(form.get("maintenanceTitle") ?? "").trim() || null,
     maintenanceMessage: String(form.get("maintenanceMessage") ?? "").trim() || null,
     notes: String(form.get("notes") ?? "").trim() || null,

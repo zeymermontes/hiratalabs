@@ -54,8 +54,24 @@ function theme(value: unknown): Record<string, string | number> | undefined {
   return Object.keys(out).length ? out : undefined;
 }
 
+/**
+ * Datos de contacto que la plantilla ya trae escritos. Se usan para prellenar
+ * la pestaña Contacto: el admin los corrige o los borra desde el panel, que
+ * sigue siendo la única fuente en vivo.
+ */
+export type ManifestContacto = {
+  brandName?: string;
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  address?: string;
+  mapsUrl?: string;
+  socials?: Record<string, string>;
+};
+
 export type LandingManifest = {
   chat?: ManifestChat;
+  contacto?: ManifestContacto;
 };
 
 export type ManifestResult = {
@@ -79,6 +95,41 @@ function list(value: unknown, cap: number, max: number): string[] | undefined {
   return out.length ? out : undefined;
 }
 
+/** Redes aceptadas: las mismas que expone el panel. */
+export const SOCIAL_KEYS_MANIFEST = [
+  "instagram", "facebook", "x", "linkedin", "tiktok",
+  "youtube", "threads", "pinterest", "github", "telegram",
+] as const;
+
+function socials(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const src = value as Record<string, unknown>;
+  const out: Record<string, string> = {};
+  for (const key of SOCIAL_KEYS_MANIFEST) {
+    const v = str(src[key], 300);
+    // Solo http(s): el valor termina en un href de la página pública.
+    if (v && /^https?:\/\//i.test(v)) out[key] = v;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+function contacto(value: unknown): ManifestContacto | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const c = value as Record<string, unknown>;
+  const out: ManifestContacto = {
+    brandName: str(c.brandName, 80),
+    email: str(c.email, 160),
+    phone: str(c.phone, 40),
+    whatsapp: str(c.whatsapp, 40),
+    address: str(c.address, 240),
+    mapsUrl: str(c.mapsUrl, 500),
+    socials: socials(c.socials),
+  };
+  if (out.email && !out.email.includes("@")) delete out.email;
+  if (out.mapsUrl && !/^https?:\/\//i.test(out.mapsUrl)) delete out.mapsUrl;
+  return Object.values(out).some((v) => v !== undefined) ? out : undefined;
+}
+
 export function parseManifest(raw: string): ManifestResult {
   let parsed: unknown;
   try {
@@ -90,8 +141,12 @@ export function parseManifest(raw: string): ManifestResult {
     return { manifest: null, error: `${MANIFEST_FILENAME} debe ser un objeto; se ignoró.` };
   }
 
+  const raizContacto = contacto((parsed as Record<string, unknown>).contacto);
+
   const chatRaw = (parsed as Record<string, unknown>).chat;
-  if (!chatRaw || typeof chatRaw !== "object") return { manifest: {}, error: null };
+  if (!chatRaw || typeof chatRaw !== "object") {
+    return { manifest: { contacto: raizContacto }, error: null };
+  }
 
   const c = chatRaw as Record<string, unknown>;
   const chat: ManifestChat = {
@@ -105,7 +160,7 @@ export function parseManifest(raw: string): ManifestResult {
     theme: theme(c.theme),
   };
 
-  return { manifest: { chat }, error: null };
+  return { manifest: { chat, contacto: raizContacto }, error: null };
 }
 
 /** Human-readable summary of what a prefill changed, shown after the upload. */

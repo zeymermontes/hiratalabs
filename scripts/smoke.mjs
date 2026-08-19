@@ -75,6 +75,7 @@ test("recognizes the admin host", () => {
 
 /* ---------------------------- chip powered-by ---------------------------- */
 
+
 test("the chip follows the panel switch on a platform subdomain", () => {
   assert.equal(shouldShowPoweredBy(true, "hirata-impresion"), true);
   assert.equal(shouldShowPoweredBy(false, "hirata-impresion"), false);
@@ -279,6 +280,22 @@ const config = publicSiteConfig(
   },
   "acme.hiratalabs.com",
 );
+
+test("the WhatsApp button needs both the switch and a number", () => {
+  const conNumero = (fab) => publicSiteConfig(
+    { id: "s1", name: "ACME", slug: "acme" }, config, "acme.hiratalabs.com", { whatsappFab: fab },
+  ).whatsappFab;
+  assert.equal(conNumero(true), true);
+  assert.equal(conNumero(false), false);
+
+  // Encenderlo sin número dejaría un botón que no lleva a ningún lado.
+  const sinNumero = publicSiteConfig(
+    { id: "s1", name: "ACME", slug: "acme" },
+    { ...config, whatsapp: "" }, "acme.hiratalabs.com", { whatsappFab: true },
+  );
+  assert.equal(sinNumero.whatsappFab, false);
+  assert.equal(sinNumero.whatsappHref, "");
+});
 
 test("builds hrefs from raw contact values", () => {
   assert.equal(config.emailHref, "mailto:hola@acme.com");
@@ -668,6 +685,44 @@ test("malformed JSON is reported, not thrown", () => {
   const { manifest, error } = parseManifest("{ roto");
   assert.equal(manifest, null);
   assert.match(error, /no es JSON válido/);
+});
+
+test("reads contact data the template already ships", () => {
+  const { manifest } = parseManifest(JSON.stringify({
+    contacto: {
+      brandName: "La Rica Dona", email: "hola@x.com", phone: "667 751 6050",
+      whatsapp: "526677516050", address: "Culiacán",
+      mapsUrl: "https://maps.app.goo.gl/x",
+      socials: { facebook: "https://facebook.com/x", instagram: "https://instagram.com/x" },
+    },
+  }));
+  assert.equal(manifest.contacto.brandName, "La Rica Dona");
+  assert.equal(manifest.contacto.whatsapp, "526677516050");
+  assert.deepEqual(Object.keys(manifest.contacto.socials), ["instagram", "facebook"]);
+});
+
+test("a social link that is not http(s) is dropped", () => {
+  // El valor termina en un href de la página pública.
+  const { manifest } = parseManifest(JSON.stringify({
+    contacto: { socials: { facebook: "javascript:alert(1)", instagram: "https://instagram.com/x" } },
+  }));
+  assert.deepEqual(Object.keys(manifest.contacto.socials), ["instagram"]);
+});
+
+test("a malformed email or maps link is dropped, not stored", () => {
+  const { manifest } = parseManifest(JSON.stringify({
+    contacto: { email: "no-es-correo", mapsUrl: "maps.app.goo.gl/x", phone: "667 751 6050" },
+  }));
+  assert.equal(manifest.contacto.email, undefined);
+  assert.equal(manifest.contacto.mapsUrl, undefined);
+  assert.equal(manifest.contacto.phone, "667 751 6050");
+});
+
+test("contact data works without a chat block", () => {
+  const { manifest, error } = parseManifest(JSON.stringify({ contacto: { phone: "667" } }));
+  assert.equal(error, null);
+  assert.equal(manifest.contacto.phone, "667");
+  assert.equal(manifest.chat, undefined);
 });
 
 test("caps what a manifest can inject", () => {
