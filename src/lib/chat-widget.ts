@@ -101,6 +101,11 @@ export const CHAT_RUNTIME = String.raw`
       "}",
       ".open .panel { display: flex; }",
       ".open .launcher { display: none; }",
+      // Se retira en vez de desaparecer de golpe: un botón que parpadea al
+      // hacer scroll se siente roto.
+      ".launcher { transition: transform .2s cubic-bezier(.34,1.4,.64,1), box-shadow .2s ease, opacity .2s ease; }",
+      ".cede .launcher { opacity: 0; transform: translateY(10px) scale(.92); pointer-events: none; }",
+      ".cede .launcher::after { animation: none; }",
       ".head { display: flex; align-items: center; gap: 10px; padding: 16px; background: var(--ink); }",
       ".head h2 { font-size: 16px; font-weight: 600; color: var(--on-ink); font-family: var(--display); letter-spacing: .04em; text-transform: uppercase; }",
       ".head p { font-size: 11.5px; color: var(--highlight); margin-top: 2px; }",
@@ -491,6 +496,47 @@ export const CHAT_RUNTIME = String.raw`
       mount.classList.remove("open");
       wrap.classList.remove("open");
     }
+
+    // El lanzador y el formulario de contacto piden lo mismo. Con el formulario
+    // en pantalla el botón solo estorba, y en móvil llega a tapar un campo.
+    function formularioALaVista() {
+      // En una landing corta el formulario puede estar siempre en pantalla: si
+      // cediéramos ahí, el chat quedaría inalcanzable. Solo se cede cuando hay
+      // suficiente scroll como para que el botón pueda volver.
+      if (document.documentElement.scrollHeight < window.innerHeight * 1.5) return false;
+      var forms = document.querySelectorAll("form[data-site-form]");
+      for (var i = 0; i < forms.length; i++) {
+        var r = forms[i].getBoundingClientRect();
+        var visible = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0);
+        if (visible > Math.min(160, r.height * 0.5)) return true;
+      }
+      return false;
+    }
+
+    var pendiente = false;
+    function revisarEstorbo() {
+      if (pendiente) return;
+      pendiente = true;
+      requestAnimationFrame(function () {
+        pendiente = false;
+        // Con el panel abierto no aplica: el lanzador ya está oculto.
+        var ceder = !wrap.classList.contains("open") && formularioALaVista();
+        wrap.classList.toggle("cede", ceder);
+      });
+    }
+
+    if (document.querySelector("form[data-site-form]")) {
+      revisarEstorbo();
+      window.addEventListener("scroll", revisarEstorbo, { passive: true });
+      window.addEventListener("resize", revisarEstorbo);
+    }
+
+    // La animación de entrada usa fill-mode "both", y una animación rellenada
+    // gana en la cascada sobre cualquier declaración normal: mientras siguiera
+    // aplicada, .cede no podía cambiarle la opacidad. Se limpia al terminar.
+    launcher.addEventListener("animationend", function (ev) {
+      if (ev.animationName && ev.animationName.indexOf("enter") === 0) launcher.style.animation = "none";
+    });
 
     launcher.addEventListener("click", open);
     wrap.querySelector(".close").addEventListener("click", close);

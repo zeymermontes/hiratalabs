@@ -10,7 +10,7 @@ process.env.ADMIN_HOST = "admin.hiratalabs.com";
 process.env.DATABASE_URL = "postgresql://user:pass@127.0.0.1:5432/db";
 
 const { extractZip } = await import("../src/lib/zip.ts");
-const { injectIntoHtml, replacePlaceholders, organizationJsonLd } = await import("../src/lib/inject.ts");
+const { injectIntoHtml, replacePlaceholders, organizationJsonLd, shareTags } = await import("../src/lib/inject.ts");
 const { publicSiteConfig, safeUrl } = await import("../src/lib/settings.ts");
 const { slugFromHost, isAdminHost, normalizeHost } = await import("../src/lib/host.ts");
 const { dnsInstructions, registrableDomain } = await import("../src/lib/render.ts");
@@ -309,6 +309,42 @@ test("a maps link is restricted to http(s)", () => {
   assert.equal(safeUrl("  "), "");
   assert.ok(safeUrl("maps.app.goo.gl/abc").startsWith("https://"));
   assert.equal(safeUrl("http://maps.google.com/?q=x"), "http://maps.google.com/?q=x");
+});
+
+test("a relative og:image becomes absolute", () => {
+  // WhatsApp, Facebook, X y LinkedIn descartan una ruta relativa: el enlace se
+  // comparte sin imagen. Es el fallo más común al publicar una landing.
+  const out = shareTags('<head><meta property="og:image" content="./assets/img/og.png"></head>', config);
+  assert.ok(out.includes('content="https://acme.hiratalabs.com/assets/img/og.png"'));
+});
+
+test("an absolute og:image is left alone", () => {
+  const url = "https://cdn.acme.com/og.png";
+  const out = shareTags(`<head><meta property="og:image" content="${url}"></head>`, config);
+  assert.ok(out.includes(`content="${url}"`));
+  assert.ok(!out.includes("acme.hiratalabs.com/https"));
+});
+
+test("the X card and site name are filled in when missing", () => {
+  const out = shareTags('<head><meta property="og:image" content="/og.png"></head>', config);
+  assert.ok(out.includes('name="twitter:card" content="summary_large_image"'));
+  assert.ok(out.includes('property="og:site_name" content="ACME"'));
+  assert.ok(out.includes('property="og:url"'));
+});
+
+test("what the landing already declares is not duplicated", () => {
+  const propio = '<head><meta property="og:image" content="/og.png">'
+    + '<meta name="twitter:card" content="summary">'
+    + '<meta property="og:url" content="https://acme.com/x"></head>';
+  const out = shareTags(propio, config);
+  assert.equal(out.match(/twitter:card/g).length, 1);
+  assert.ok(out.includes('content="summary"'), "no debe pisar la tarjeta elegida");
+  assert.equal(out.match(/og:url/g).length, 1);
+});
+
+test("a page without og:image gets no X card", () => {
+  const out = shareTags("<head></head>", config);
+  assert.ok(!out.includes("twitter:card"));
 });
 
 test("emits Organization data from the panel, skipping empty fields", () => {

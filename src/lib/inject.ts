@@ -63,8 +63,51 @@ export function organizationJsonLd(config: PublicSiteConfig): string {
   return `<script type="application/ld+json" id="__site_jsonld__">${safeJson(data)}</script>`;
 }
 
+/**
+ * Metadatos para compartir. Dos cosas que las landings casi nunca traen bien:
+ *
+ * og:image tiene que ser absoluta. WhatsApp, Facebook, X, LinkedIn e iMessage
+ * descartan una ruta relativa y el enlace se comparte sin imagen. Aquí se
+ * reescribe con el host que está sirviendo la página, que además es el correcto
+ * cuando el mismo ZIP responde en el subdominio y en el dominio del cliente.
+ *
+ * Y se completa lo que falte —tarjeta de X, nombre del sitio, url— sin pisar
+ * nada de lo que la landing ya declare.
+ */
+export function shareTags(html: string, config: PublicSiteConfig): string {
+  const base = `https://${config.host}`;
+  const absoluta = (url: string) =>
+    /^(https?:)?\/\//i.test(url) || url.startsWith("data:")
+      ? url
+      : `${base}/${url.replace(/^\.?\/*/, "")}`;
+
+  let out = html.replace(
+    /(<meta\s+(?:property|name)="(?:og:image|twitter:image)"\s+content=")([^"]*)(")/gi,
+    (_m, pre: string, url: string, post: string) => pre + escapeHtml(absoluta(url)) + post,
+  );
+
+  const tiene = (clave: string) => new RegExp(`(?:property|name)="${clave}"`, "i").test(out);
+
+  const faltantes: string[] = [];
+  if (/og:image/i.test(out) && !tiene("twitter:card")) {
+    // Sin esto X muestra una miniatura cuadrada en vez de la imagen completa.
+    faltantes.push('<meta name="twitter:card" content="summary_large_image">');
+  }
+  if (config.brandName && !tiene("og:site_name")) {
+    faltantes.push(`<meta property="og:site_name" content="${escapeHtml(config.brandName)}">`);
+  }
+  if (!tiene("og:url")) {
+    faltantes.push(`<meta property="og:url" content="${escapeHtml(base + "/")}">`);
+  }
+
+  if (faltantes.length === 0) return out;
+  const bloque = faltantes.join("");
+  if (/<\/head>/i.test(out)) return out.replace(/<\/head>/i, `${bloque}</head>`);
+  return bloque + out;
+}
+
 export function injectIntoHtml(html: string, config: PublicSiteConfig): string {
-  const withValues = replacePlaceholders(html, config);
+  const withValues = shareTags(replacePlaceholders(html, config), config);
 
   // The chat script is only shipped to pages that actually use it.
   const chatBlock = config.chat?.enabled
