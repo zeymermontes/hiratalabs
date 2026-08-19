@@ -40,14 +40,16 @@ Puntos clave:
 2. **SQL Editor** → pega y ejecuta [`drizzle/0000_init.sql`](drizzle/0000_init.sql).
 3. **Storage** → crea un bucket llamado `landings`, **privado**.
 4. **Project Settings → API** → copia `URL`, `anon key` y `service_role key`.
-5. **Project Settings → Database → Connection pooling** (modo *Session*) → copia el
-   connection string a `DATABASE_URL`.
+5. **Project Settings → Database → Connection string** → pestaña **Session pooler** →
+   cópialo a `DATABASE_URL` y reemplaza `[YOUR-PASSWORD]`. No uses *Direct connection*:
+   es solo IPv6 y Render no la alcanza.
 6. **Authentication → Providers → Email**: deja activo *Magic Link*, apaga *Confirm email*
    si quieres un login de un solo paso.
 7. **Authentication → URL Configuration** → *Redirect URLs*: agrega
    `https://admin.hiratalabs.com/auth/callback`.
-8. **Authentication → SMTP Settings**: apunta a Resend para que los magic links salgan de
-   tu dominio (host `smtp.resend.com`, puerto `465`, usuario `resend`, password = tu API key).
+8. **Authentication → Emails → SMTP Settings**: apunta a Resend para que los magic links
+   salgan de tu dominio — host `smtp.resend.com`, puerto `465` (SSL/TLS implícito), usuario
+   `resend`, password = tu API key, remitente `noreply@hiratalabs.com`.
 
 ### 2. Resend
 
@@ -68,8 +70,8 @@ Puntos clave:
    - `hiratalabs.com` (Render exige que el apex apunte al servicio para el wildcard)
    - `*.hiratalabs.com`
    - `admin.hiratalabs.com`
-5. Render te pedirá un CNAME `_acme-challenge` para el wildcard: créalo en tu DNS.
-   Es lo que le permite emitir y renovar el certificado por DNS-01.
+5. Render pedirá los CNAME `_acme-challenge` y `_cf-custom-hostname` para el wildcard:
+   créalos en tu DNS. Son los que le permiten emitir y renovar el certificado.
 6. **Account Settings → API Keys** → crea una key → `RENDER_API_KEY`, y copia el
    `srv-…` de la URL del servicio → `RENDER_SERVICE_ID`.
 7. `RENDER_SERVICE_HOST` = el host `…onrender.com` del servicio. Es el valor que los
@@ -77,13 +79,21 @@ Puntos clave:
 
 ### 4. DNS de hiratalabs.com
 
-| Tipo | Nombre | Valor |
-|---|---|---|
-| A / ALIAS | `@` | lo que indique Render para el apex |
-| CNAME | `*` | `<tu-servicio>.onrender.com` |
-| CNAME | `www` | `<tu-servicio>.onrender.com` |
-| CNAME | `admin` | `<tu-servicio>.onrender.com` |
-| CNAME | `_acme-challenge` | lo que indique Render |
+GoDaddy no soporta ALIAS/ANAME en el apex, así que el raíz va con un registro A.
+
+| Acción | Tipo | Nombre | Valor |
+|---|---|---|---|
+| borrar | A | `@` | los registros del host anterior |
+| borrar | AAAA | cualquiera | Render exige que no haya AAAA en el dominio |
+| agregar | A | `@` | `216.24.57.1` (load balancer de Render) |
+| agregar | CNAME | `*` | `<tu-servicio>.onrender.com` |
+| agregar | CNAME | `www` | `<tu-servicio>.onrender.com` |
+| agregar | CNAME | `admin` | `<tu-servicio>.onrender.com` |
+| agregar | CNAME | `_acme-challenge` | `<srv-id>.verify.renderdns.com` |
+| agregar | CNAME | `_cf-custom-hostname` | `<srv-id>.hostname.renderdns.com` |
+
+Los dos últimos son los que le permiten a Render emitir y renovar el certificado
+wildcard. Más los registros SPF/DKIM que pida Resend.
 
 ### 5. Sitio principal (hiratalabs.com)
 
