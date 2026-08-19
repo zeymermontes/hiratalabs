@@ -9,8 +9,9 @@ process.env.DATABASE_URL = "postgresql://user:pass@127.0.0.1:5432/db";
 
 const { extractZip } = await import("../src/lib/zip.ts");
 const { injectIntoHtml, replacePlaceholders } = await import("../src/lib/inject.ts");
-const { publicSiteConfig } = await import("../src/lib/settings.ts");
+const { publicSiteConfig, safeUrl } = await import("../src/lib/settings.ts");
 const { slugFromHost, isAdminHost, normalizeHost } = await import("../src/lib/host.ts");
+const { dnsInstructions, registrableDomain } = await import("../src/lib/render.ts");
 const { SITE_RUNTIME } = await import("../src/lib/runtime.ts");
 const { CHAT_RUNTIME } = await import("../src/lib/chat-widget.ts");
 const { costOf, toMicros, fromMicros, formatUsd } = await import("../src/lib/ai/pricing.ts");
@@ -67,6 +68,47 @@ test("extracts slug from subdomain", () => {
 test("recognizes the admin host", () => {
   assert.equal(isAdminHost("admin.hiratalabs.com"), true);
   assert.equal(isAdminHost("acme.hiratalabs.com"), false);
+});
+
+/* -------------------------------- dns ----------------------------------- */
+
+const RENDER_HOST = "landings-rcse.onrender.com";
+
+test("finds the registrable domain under a compound suffix", () => {
+  assert.equal(registrableDomain("cliente.com"), "cliente.com");
+  assert.equal(registrableDomain("www.cliente.com"), "cliente.com");
+  assert.equal(registrableDomain("cliente.com.mx"), "cliente.com.mx");
+  assert.equal(registrableDomain("www.cliente.com.mx"), "cliente.com.mx");
+  assert.equal(registrableDomain("cliente.co.uk"), "cliente.co.uk");
+  assert.equal(registrableDomain("a.b.cliente.com"), "cliente.com");
+});
+
+test("an apex under .com.mx is not mistaken for a subdomain", () => {
+  // Antes pedía un CNAME llamado "cliente", que crea cliente.cliente.com.mx.
+  const d = dnsInstructions("cliente.com.mx", RENDER_HOST);
+  assert.ok(d.alternativas);
+  assert.deepEqual(d.records.map((r) => r.name), ["@", "@"]);
+});
+
+test("an apex offers ALIAS to the host or an A record to the IP", () => {
+  const d = dnsInstructions("cliente.com", RENDER_HOST);
+  const alias = d.records.find((r) => r.type.startsWith("ALIAS"));
+  const a = d.records.find((r) => r.type === "A");
+  assert.equal(alias.value, RENDER_HOST);
+  // Un registro A no acepta un hostname como valor.
+  assert.match(a.value, /^\d+\.\d+\.\d+\.\d+$/);
+});
+
+test("a subdomain keeps every label before the root", () => {
+  assert.equal(dnsInstructions("www.cliente.com", RENDER_HOST).records[0].name, "www");
+  assert.equal(dnsInstructions("www.cliente.com.mx", RENDER_HOST).records[0].name, "www");
+  assert.equal(dnsInstructions("a.b.cliente.com", RENDER_HOST).records[0].name, "a.b");
+});
+
+test("a subdomain gets a single CNAME to the Render host", () => {
+  const d = dnsInstructions("tienda.cliente.com", RENDER_HOST);
+  assert.equal(d.alternativas, false);
+  assert.deepEqual(d.records, [{ type: "CNAME", name: "tienda", value: RENDER_HOST }]);
 });
 
 /* -------------------------------- zip ----------------------------------- */
@@ -157,6 +199,30 @@ test("builds hrefs from raw contact values", () => {
   assert.equal(config.phoneHref, "tel:+525512345678");
   assert.equal(config.whatsappHref, "https://wa.me/525587654321");
   assert.ok(config.addressHref.startsWith("https://maps.google.com/?q="));
+});
+
+test("an explicit maps link beats the address search", () => {
+  const conLink = publicSiteConfig(
+    { id: "s1", name: "ACME", slug: "acme" },
+    { ...config, mapsUrl: "https://maps.app.goo.gl/abc123", address: "Reforma 123" },
+    "acme.hiratalabs.com",
+  );
+  assert.equal(conLink.addressHref, "https://maps.app.goo.gl/abc123");
+  assert.equal(conLink.mapsUrl, "https://maps.app.goo.gl/abc123");
+});
+
+test("falls back to a search when there is no maps link", () => {
+  assert.ok(config.addressHref.startsWith("https://maps.google.com/?q="));
+  assert.equal(config.mapsUrl ?? "", "");
+});
+
+test("a maps link is restricted to http(s)", () => {
+  // El valor termina en un href de la página pública.
+  assert.equal(safeUrl("javascript:alert(1)"), "");
+  assert.equal(safeUrl("data:text/html,<script>alert(1)</script>"), "");
+  assert.equal(safeUrl("  "), "");
+  assert.ok(safeUrl("maps.app.goo.gl/abc").startsWith("https://"));
+  assert.equal(safeUrl("http://maps.google.com/?q=x"), "http://maps.google.com/?q=x");
 });
 
 test("replaces placeholders and blanks unknown keys", () => {

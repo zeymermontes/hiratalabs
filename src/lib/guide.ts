@@ -119,6 +119,10 @@ El texto o el enlace se rellenan solos en el navegador:
 <a data-site-href="email" data-site="email"></a>          <!-- mailto: -->
 <a data-site-href="phone" data-site="phone"></a>          <!-- tel: -->
 <a data-site-href="whatsapp">Escríbenos por WhatsApp</a>   <!-- https://wa.me/... -->
+
+<!-- Con mensaje precargado: el número lo sigue controlando el panel -->
+<a data-site-href="whatsapp" data-site-text="Hola, quiero cotizar un trabajo">WhatsApp</a>
+<a data-site-href="email" data-site-text="Cotización">Correo</a>
 <a data-site-href="address">Cómo llegar</a>                <!-- Google Maps -->
 <a data-site-href="instagram" aria-label="Instagram">…</a>
 <a data-site-href="linkedin" aria-label="LinkedIn">…</a>
@@ -126,6 +130,9 @@ El texto o el enlace se rellenan solos en el navegador:
 <!-- Atributos arbitrarios: "atributo:clave" separados por coma -->
 <img data-site-attr="src:custom.logo, alt:brandName">
 \`\`\`
+
+\`data-site-text\` precarga el mensaje en WhatsApp o el asunto en el correo, sin dejar de tomar el número o la
+dirección del panel. Es la forma correcta de tener las dos cosas: nunca escribas el \`wa.me/\` a mano.
 
 **Comportamiento importante:** si un valor está vacío en el panel, el elemento **se oculta solo**.
 Así nunca queda un enlace de WhatsApp roto. Si quieres que se muestre aunque esté vacío, agrega \`data-site-keep\`.
@@ -160,8 +167,9 @@ Todos viven también en \`window.__SITE__\` por si necesitas leerlos desde tu pr
 | \`site.phoneHref\` | \`tel:…\` |
 | \`site.whatsapp\` | Número de WhatsApp |
 | \`site.whatsappHref\` | \`https://wa.me/…\` |
-| \`site.address\` | Dirección |
-| \`site.addressHref\` | Enlace a Google Maps |
+| \`site.address\` | Dirección en texto |
+| \`site.addressHref\` | Enlace a Google Maps: el que se capturó en el panel, o una búsqueda de la dirección si no hay |
+| \`site.mapsUrl\` | Solo el enlace capturado, vacío si no hay |
 | \`site.socials.<red>\` | URL de cada red: ${socials} |
 | \`site.year\` | Año actual, útil para el footer |
 | \`site.name\` / \`site.host\` | Nombre interno del sitio y dominio donde se sirve |

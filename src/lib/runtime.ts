@@ -13,11 +13,19 @@ export const SITE_RUNTIME = `
     }, S);
   }
 
-  function hrefFor(key) {
+  /** data-site-text precarga el mensaje del enlace de WhatsApp o el asunto del correo. */
+  function withText(base, el, kind) {
+    var text = el && el.getAttribute("data-site-text");
+    if (!base || !text) return base;
+    var param = kind === "email" ? "subject" : "text";
+    return base + (base.indexOf("?") === -1 ? "?" : "&") + param + "=" + encodeURIComponent(text);
+  }
+
+  function hrefFor(key, el) {
     if (!key) return "";
-    if (key === "email") return S.emailHref || "";
+    if (key === "email") return withText(S.emailHref || "", el, "email");
     if (key === "phone" || key === "tel") return S.phoneHref || "";
-    if (key === "whatsapp" || key === "wa") return S.whatsappHref || "";
+    if (key === "whatsapp" || key === "wa") return withText(S.whatsappHref || "", el, "whatsapp");
     if (key === "address" || key === "map") return S.addressHref || "";
     var direct = val(key);
     if (typeof direct === "string" && direct) return direct;
@@ -45,7 +53,7 @@ export const SITE_RUNTIME = `
     });
 
     each(root, "[data-site-href]", function (el) {
-      var v = hrefFor(el.getAttribute("data-site-href"));
+      var v = hrefFor(el.getAttribute("data-site-href"), el);
       if (!v) return hide(el);
       el.setAttribute("href", v);
     });

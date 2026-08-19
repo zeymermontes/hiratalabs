@@ -18,6 +18,7 @@ export type EffectiveSettings = {
   phone: string;
   whatsapp: string;
   address: string;
+  mapsUrl: string;
   socials: Record<string, string>;
   formRecipients: string[];
   formSubject: string;
@@ -51,6 +52,7 @@ export async function resolveSettings(siteId: string, siteName: string): Promise
     phone: clean(s?.phone),
     whatsapp: clean(s?.whatsapp),
     address: clean(s?.address),
+    mapsUrl: safeUrl(clean(s?.mapsUrl)),
     socials,
     formRecipients: (s?.formRecipients ?? []).filter(Boolean),
     formSubject: clean(s?.formSubject) || "Nuevo mensaje desde {site}",
@@ -59,6 +61,22 @@ export async function resolveSettings(siteId: string, siteName: string): Promise
 }
 
 const DIGITS = /[^\d+]/g;
+
+/**
+ * Solo http(s). El valor viaja a un href de la página pública, así que un
+ * `javascript:` capturado en el panel se ejecutaría en el sitio del cliente.
+ */
+export function safeUrl(raw: string): string {
+  const v = raw.trim();
+  if (!v) return "";
+  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(v) ? v : `https://${v}`;
+  try {
+    const u = new URL(withScheme);
+    return u.protocol === "http:" || u.protocol === "https:" ? u.toString() : "";
+  } catch {
+    return "";
+  }
+}
 
 /** The exact object exposed to landing pages as window.__SITE__. */
 export function publicSiteConfig(
@@ -92,7 +110,10 @@ export function publicSiteConfig(
     whatsapp: s.whatsapp,
     whatsappHref: waDigits ? `https://wa.me/${waDigits}` : "",
     address: s.address,
-    addressHref: s.address ? `https://maps.google.com/?q=${encodeURIComponent(s.address)}` : "",
+    // El enlace capturado gana: una búsqueda por texto falla cuando la
+    // dirección trae interior o colonia.
+    addressHref: s.mapsUrl || (s.address ? `https://maps.google.com/?q=${encodeURIComponent(s.address)}` : ""),
+    mapsUrl: s.mapsUrl,
     socials: s.socials,
     custom: s.custom,
     formEndpoint: "/api/f/submit",

@@ -12,7 +12,7 @@ import { env, RESERVED_SLUGS } from "@/lib/env";
 import { cacheClear } from "@/lib/filecache";
 import { sendTestEmail } from "@/lib/mailer";
 import { createCustomDomain, deleteCustomDomain, getCustomDomain, renderConfigured } from "@/lib/render";
-import { SOCIAL_KEYS } from "@/lib/settings";
+import { SOCIAL_KEYS, safeUrl } from "@/lib/settings";
 import { hostsForSite, invalidateSiteCache } from "@/lib/sites";
 import { removePrefix, storagePrefix, uploadVersionFiles, etagFor } from "@/lib/storage";
 import { extractZip } from "@/lib/zip";
@@ -296,6 +296,7 @@ function settingsFromForm(form: FormData) {
     phone: String(form.get("phone") ?? "").trim() || null,
     whatsapp: String(form.get("whatsapp") ?? "").trim() || null,
     address: String(form.get("address") ?? "").trim() || null,
+    mapsUrl: safeUrl(String(form.get("mapsUrl") ?? "")) || null,
     socials,
     formRecipients: parseList(form.get("formRecipients")),
     formSubject: String(form.get("formSubject") ?? "").trim() || null,

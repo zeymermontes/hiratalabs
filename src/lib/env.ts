@@ -64,6 +64,14 @@ export const env = {
   get renderServiceHost() {
     return opt("RENDER_EXTERNAL_HOSTNAME") || opt("RENDER_SERVICE_HOST", "landings.onrender.com");
   },
+  /**
+   * IP de Render para registros A en el ápex. Render la ha cambiado antes, así
+   * que es configurable sin tocar código. Sin prefijo RENDER_, que es reservado
+   * y no se puede declarar en el panel de Render.
+   */
+  get renderApexIp() {
+    return opt("APEX_IP", "216.24.57.1");
+  },
   get maxZipBytes() {
     return Number(opt("MAX_ZIP_BYTES", "104857600"));
   },

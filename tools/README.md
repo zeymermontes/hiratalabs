@@ -178,3 +178,36 @@ queda un enlace roto. El contrato completo está en el panel, en **Guía para IA
 - Publicar es apuntar a otra versión: **volver atrás es instantáneo** desde la pestaña Publicación.
 - Las landings en subdominio traen el chip "Powered by" abajo a la derecha. Los dominios propios no.
 - Cambiar datos de contacto **no requiere volver a subir el ZIP**: se inyectan en cada request.
+
+---
+
+## Cuando el cliente no tiene fotos
+
+Los diseños de Claude Design suelen dejar marcos rayados como lugar reservado. Si
+el cliente todavía no tiene fotografía propia, el hueco se llena con fotos de banco
+y se deja listo para el cambio:
+
+1. **Fuente.** Solo Pexels: licencia de uso comercial y sin atribución obligatoria.
+   Su buscador bloquea `curl` (403) pero WebFetch sí lee las páginas de resultados,
+   y el CDN descarga directo con
+   `https://images.pexels.com/photos/<id>/pexels-photo-<id>.jpeg?w=1600`.
+   Unsplash pide llave (401 en búsqueda y en la página de cada foto). StockSnap
+   responde pero su catálogo es lifestyle genérico. Openverse y Wikimedia Commons
+   tienen poco material moderno de imprenta, y casi todo con share-alike.
+2. **Criterios de descarte**, en este orden: marca de terceros legible (incluidas
+   las calcomanías con el logo de Pexels), rostro de persona identificable, y foto
+   clara sobre diseño oscuro — una imagen luminosa rompe una paleta carbón aunque
+   el encuadre sea correcto.
+3. **Catálogo.** `fotos/catalogo.mjs` mapea hueco → id de Pexels + `alt` + pie.
+   `fotos/optimizar.mjs` descarga una vez a `fotos/originales/` (caché) y emite
+   AVIF + WebP en dos anchos más un JPEG de respaldo. Escribe `fotos/creditos.json`.
+4. **Foto real del cliente.** Se pone en `fotos/propias/<slug>.jpg` y el
+   optimizador la prefiere sobre la descarga. No hay que tocar el generador.
+5. **Legibilidad.** El texto del diseño va sobre el marco, así que la foto necesita
+   un degradado detrás de las letras (`.foto::before` / `.pieza::before`), o el
+   crema y el dorado dejan de leerse sobre zonas claras de la imagen.
+6. **Honestidad.** La página lleva la nota de que es fotografía de referencia y no
+   trabajos del taller. Sin eso, el portafolio afirma algo falso.
+
+No se recorta a una proporción fija al generar: `object-fit: cover` recorta en el
+navegador y así la imagen no pierde encuadre dos veces.

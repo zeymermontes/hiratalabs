@@ -10,6 +10,7 @@ export type ContactValues = {
   phone: string;
   whatsapp: string;
   address: string;
+  mapsUrl: string;
   socials: Record<string, string>;
   formRecipients: string[];
   formSubject: string;
@@ -59,8 +60,21 @@ export function ContactForm({
             <input name="whatsapp" defaultValue={values.whatsapp} placeholder="+525512345678" className="input" />
           </Field>
           <div className="sm:col-span-2">
-            <Field label="Dirección" hint="site.address · site.addressHref (Google Maps)">
+            <Field label="Dirección" hint="site.address · el texto que se muestra en la landing.">
               <input name="address" defaultValue={values.address} placeholder="Av. Reforma 123, CDMX" className="input" />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field
+              label="Enlace de Google Maps"
+              hint="Pega el enlace de «Compartir» de Maps. Alimenta site.addressHref; si lo dejas vacío se arma una búsqueda con la dirección de arriba."
+            >
+              <input
+                name="mapsUrl" type="url" inputMode="url"
+                defaultValue={values.mapsUrl}
+                placeholder="https://maps.app.goo.gl/…"
+                className="input"
+              />
             </Field>
           </div>
         </div>

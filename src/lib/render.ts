@@ -64,20 +64,55 @@ export async function deleteCustomDomain(idOrName: string): Promise<void> {
   }
 }
 
+/**
+ * Sufijos de dos etiquetas: ahí el dominio raíz tiene tres partes.
+ * Sin esta lista, `cliente.com.mx` se toma por subdominio y las instrucciones
+ * piden un CNAME llamado "cliente", que en realidad crea
+ * cliente.cliente.com.mx y nunca resuelve.
+ */
+const SUFIJOS_COMPUESTOS = new Set([
+  "com.mx", "org.mx", "net.mx", "gob.mx", "edu.mx",
+  "com.ar", "com.br", "com.co", "com.pe", "com.cl", "com.ve", "com.ec",
+  "com.uy", "com.py", "com.bo", "com.gt", "com.sv", "com.hn", "com.ni",
+  "com.pa", "com.do", "com.pr", "com.cr",
+  "co.uk", "org.uk", "ac.uk", "gov.uk", "com.au", "co.nz", "co.za",
+  "com.tr", "com.ua", "co.jp", "com.cn", "com.tw", "com.hk", "com.sg",
+  "com.my", "com.ph", "com.vn", "co.in", "com.pk", "com.ng", "com.sa",
+]);
+
+/** El dominio registrable: lo que el cliente compró, sin subdominios. */
+export function registrableDomain(hostname: string): string {
+  const parts = hostname.toLowerCase().replace(/\.$/, "").split(".").filter(Boolean);
+  if (parts.length <= 2) return parts.join(".");
+  const ultimos2 = parts.slice(-2).join(".");
+  return parts.slice(SUFIJOS_COMPUESTOS.has(ultimos2) ? -3 : -2).join(".");
+}
+
+export type DnsRecord = { type: string; name: string; value: string; label?: string };
+
 /** DNS instructions we show the client for their own domain. */
 export function dnsInstructions(hostname: string, serviceHost: string) {
-  const isApex = hostname.split(".").length === 2;
-  return isApex
-    ? {
-        type: "A / ALIAS",
-        name: "@",
-        value: serviceHost,
-        note: "Si tu proveedor soporta ALIAS/ANAME al host de Render, úsalo. Si no, usa los registros A que muestra Render.",
-      }
-    : {
-        type: "CNAME",
-        name: hostname.split(".")[0],
-        value: serviceHost,
-        note: "Apunta el subdominio al host de Render. El certificado TLS se emite solo en cuanto el DNS propaga.",
-      };
+  const host = hostname.toLowerCase().replace(/\.$/, "");
+  const raiz = registrableDomain(host);
+
+  if (host === raiz) {
+    return {
+      // Dos caminos porque un registro A no acepta un hostname como valor:
+      // quien no tenga ALIAS necesita la IP, no el host de Render.
+      alternativas: true,
+      records: [
+        { type: "ALIAS / ANAME", name: "@", value: serviceHost, label: "si el proveedor lo soporta" },
+        { type: "A", name: "@", value: env.renderApexIp, label: "si no soporta ALIAS" },
+      ] as DnsRecord[],
+      note: `Crea solo uno de los dos, no ambos. Si el DNS está en Cloudflare, usa CNAME a ${serviceHost} incluso en el ápex: Cloudflare lo aplana y rechaza el registro A. Si el panel de Render muestra otra IP para este dominio, esa manda. Para que también responda en www.${raiz}, agrégalo aquí como dominio aparte.`,
+    };
+  }
+
+  return {
+    alternativas: false,
+    records: [
+      { type: "CNAME", name: host.slice(0, host.length - raiz.length - 1), value: serviceHost },
+    ] as DnsRecord[],
+    note: "Apunta el subdominio al host de Render. El certificado TLS se emite solo en cuanto el DNS propaga.",
+  };
 }

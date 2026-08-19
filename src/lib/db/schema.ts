@@ -81,6 +81,8 @@ export const siteSettings = pgTable("site_settings", {
   phone: text("phone"),
   whatsapp: text("whatsapp"),
   address: text("address"),
+  /** Explicit Google Maps link. Beats the address-search URL when present. */
+  mapsUrl: text("maps_url"),
   /** { instagram, facebook, x, linkedin, tiktok, youtube, ... } */
   socials: jsonb("socials").$type<Record<string, string>>().default({}).notNull(),
   /** Where contact-form submissions are emailed. */

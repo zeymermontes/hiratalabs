@@ -30,7 +30,11 @@ export function DomainRow({
 }: {
   siteId: string;
   domain: { id: string; hostname: string; status: string; isPrimary: boolean; lastCheckedAt: Date | null };
-  dns: { type: string; name: string; value: string; note: string };
+  dns: {
+    alternativas: boolean;
+    records: { type: string; name: string; value: string; label?: string }[];
+    note: string;
+  };
 }) {
   const [pending, start] = useTransition();
 
@@ -95,21 +99,29 @@ export function DomainRow({
 
       {domain.status !== "verified" ? (
         <div className="mt-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-          <p className="mb-2 text-xs font-medium text-neutral-700">Registro DNS que debe crear el cliente:</p>
-          <table className="w-full text-xs">
+          <p className="mb-2 text-xs font-medium text-neutral-700">
+            {dns.alternativas
+              ? "El cliente crea UNO de estos dos registros:"
+              : "Registro DNS que debe crear el cliente:"}
+          </p>
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="text-neutral-500">
+                <th className="py-0.5 pr-4 font-normal">Tipo</th>
+                <th className="py-0.5 pr-4 font-normal">Nombre</th>
+                <th className="py-0.5 pr-4 font-normal">Valor</th>
+                <th className="py-0.5 font-normal" />
+              </tr>
+            </thead>
             <tbody>
-              <tr>
-                <td className="py-0.5 pr-4 text-neutral-500">Tipo</td>
-                <td className="font-mono text-neutral-900">{dns.type}</td>
-              </tr>
-              <tr>
-                <td className="py-0.5 pr-4 text-neutral-500">Nombre</td>
-                <td className="font-mono text-neutral-900">{dns.name}</td>
-              </tr>
-              <tr>
-                <td className="py-0.5 pr-4 text-neutral-500">Valor</td>
-                <td className="font-mono text-neutral-900">{dns.value}</td>
-              </tr>
+              {dns.records.map((r) => (
+                <tr key={r.type}>
+                  <td className="py-0.5 pr-4 font-mono text-neutral-900">{r.type}</td>
+                  <td className="py-0.5 pr-4 font-mono text-neutral-900">{r.name || "@"}</td>
+                  <td className="py-0.5 pr-4 font-mono break-all text-neutral-900">{r.value}</td>
+                  <td className="py-0.5 text-neutral-500">{r.label ?? ""}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
           <p className="hint mt-2">{dns.note}</p>

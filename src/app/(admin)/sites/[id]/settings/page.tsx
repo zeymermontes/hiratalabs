@@ -41,6 +41,7 @@ export default async function SiteSettingsPage({ params }: { params: Promise<{ i
           phone: row?.phone ?? "",
           whatsapp: row?.whatsapp ?? "",
           address: row?.address ?? "",
+          mapsUrl: row?.mapsUrl ?? "",
           socials: row?.socials ?? {},
           formRecipients: recipients,
           formSubject: row?.formSubject ?? "",
