@@ -52,17 +52,17 @@ export default async function ReportsPage({ params }: { params: Promise<{ id: st
 
   const missingPrice = okNow.some((r) => !priceOf(r.provider, r.model));
 
-  const costBars: Bar[] = months.map((m) => ({
-    label: m.short,
-    caption: m.long,
-    value: inMonth(usage, m.key).filter((u) => u.ok).reduce((n, r) => n + costOfRow(r), 0),
-  }));
+  const nf = new Intl.NumberFormat("es-MX");
 
-  const messageBars: Bar[] = months.map((m) => ({
-    label: m.short,
-    caption: m.long,
-    value: inMonth(msgs, m.key).length,
-  }));
+  const costBars: Bar[] = months.map((m) => {
+    const value = inMonth(usage, m.key).filter((u) => u.ok).reduce((n, r) => n + costOfRow(r), 0);
+    return { label: m.short, caption: m.long, value, display: formatUsd(value) };
+  });
+
+  const messageBars: Bar[] = months.map((m) => {
+    const value = inMonth(msgs, m.key).length;
+    return { label: m.short, caption: m.long, value, display: nf.format(value) };
+  });
 
   const byModel = totalsByModel(okNow, prices);
 
@@ -78,7 +78,6 @@ export default async function ReportsPage({ params }: { params: Promise<{ id: st
   }
 
   const failedCalls = usageNow.filter((u) => !u.ok).length;
-  const nf = new Intl.NumberFormat("es-MX");
   const monthLabel = months[months.length - 1].long;
 
   const tiles = [
@@ -116,13 +115,13 @@ export default async function ReportsPage({ params }: { params: Promise<{ id: st
         <section className="card p-5">
           <h2 className="text-sm font-semibold text-neutral-900">Costo de IA por mes</h2>
           <p className="hint mb-4">Últimos {MONTHS_SHOWN} meses, en dólares.</p>
-          <MonthlyBars bars={costBars} format={formatUsd} empty="Sin consumo registrado todavía." />
+          <MonthlyBars bars={costBars} empty="Sin consumo registrado todavía." />
         </section>
 
         <section className="card p-5">
           <h2 className="text-sm font-semibold text-neutral-900">Mensajes recibidos por mes</h2>
           <p className="hint mb-4">Formularios y chat, juntos.</p>
-          <MonthlyBars bars={messageBars} format={(v) => nf.format(v)} empty="Sin mensajes todavía." />
+          <MonthlyBars bars={messageBars} empty="Sin mensajes todavía." />
         </section>
       </div>
 

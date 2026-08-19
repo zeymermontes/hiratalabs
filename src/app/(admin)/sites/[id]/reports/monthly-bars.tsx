@@ -2,17 +2,21 @@
 
 import { useState } from "react";
 
-export type Bar = { label: string; value: number; caption: string };
+/**
+ * `display` viene ya formateado desde el servidor. Antes se pasaba una función
+ * `format`, pero las funciones no cruzan la frontera Server→Client: React las
+ * serializa como error y la página entera revienta.
+ */
+export type Bar = { label: string; value: number; caption: string; display: string };
 
 /**
  * One series, so no legend: the heading names it. Bars are thin, anchored to the
  * baseline with rounded data-ends, separated by a surface gap.
  */
 export function MonthlyBars({
-  bars, format, empty,
+  bars, empty,
 }: {
   bars: Bar[];
-  format: (value: number) => string;
   empty: string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
@@ -39,11 +43,11 @@ export function MonthlyBars({
               onMouseLeave={() => setHover(null)}
               onFocus={() => setHover(i)}
               onBlur={() => setHover(null)}
-              aria-label={`${b.caption}: ${format(b.value)}`}
+              aria-label={`${b.caption}: ${b.display}`}
             >
               {i === peak && b.value > 0 ? (
                 <span className="mb-1 text-[11px] font-medium tabular-nums text-neutral-600">
-                  {format(b.value)}
+                  {b.display}
                 </span>
               ) : null}
               <span
@@ -75,7 +79,7 @@ export function MonthlyBars({
       {hover !== null ? (
         <div className="pointer-events-none absolute -top-1 left-0 right-0 flex justify-center">
           <span className="rounded-md bg-neutral-900 px-2 py-1 text-xs text-white shadow-sm">
-            {bars[hover].caption} · <strong className="tabular-nums">{format(bars[hover].value)}</strong>
+            {bars[hover].caption} · <strong className="tabular-nums">{bars[hover].display}</strong>
           </span>
         </div>
       ) : null}

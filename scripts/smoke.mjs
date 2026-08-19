@@ -2,6 +2,8 @@
 // Run with: node --experimental-strip-types scripts/smoke.mjs  (or via npm run smoke)
 import assert from "node:assert/strict";
 import { zipSync, strToU8 } from "fflate";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 process.env.ROOT_DOMAIN = "hiratalabs.com";
 process.env.ADMIN_HOST = "admin.hiratalabs.com";
@@ -87,6 +89,71 @@ test("the chip also follows the switch on the client's own domain", () => {
 
 test("the platform home never carries the chip", () => {
   assert.equal(shouldShowPoweredBy(true, "www"), false);
+});
+
+/* --------------------- frontera Server → Client --------------------------- */
+
+function tsxFiles(dir) {
+  const out = [];
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) out.push(...tsxFiles(p));
+    else if (p.endsWith(".tsx")) out.push(p);
+  }
+  return out;
+}
+
+test("no function props are handed to a client component", () => {
+  // Una función no se puede serializar de Server a Client: React la manda como
+  // error y la página entera revienta en runtime. Ni tsc ni next build lo
+  // detectan, así que el guardia va aquí. Los server actions sí cruzan: llevan
+  // su propia marca "use server", por eso `action` queda fuera del control.
+  const archivos = tsxFiles("src");
+  const esCliente = (t) => /^\s*["']use client["']/m.test(t.slice(0, 200));
+
+  const cliente = new Set();
+  for (const f of archivos) {
+    const txt = readFileSync(f, "utf8");
+    if (!esCliente(txt)) continue;
+    for (const m of txt.matchAll(/export function ([A-Z]\w*)/g)) cliente.add(m[1]);
+  }
+  assert.ok(cliente.size > 0, "no encontré componentes cliente: el control no probaría nada");
+
+  // Se recorre balanceando llaves: un `=>` dentro de una prop contiene ">" y
+  // cortaría cualquier regex ingenua justo donde está el problema.
+  function abreEtiqueta(txt, desde) {
+    let prof = 0;
+    for (let i = desde; i < txt.length; i++) {
+      const c = txt[i];
+      if (c === "{") prof++;
+      else if (c === "}") prof--;
+      else if (c === ">" && prof === 0) return txt.slice(desde, i);
+    }
+    return null;
+  }
+
+  const culpables = [];
+  for (const f of archivos) {
+    const txt = readFileSync(f, "utf8");
+    if (esCliente(txt)) continue;
+    for (const nombre of cliente) {
+      const re = new RegExp("<" + nombre + "\\b", "g");
+      let m;
+      while ((m = re.exec(txt))) {
+        const cuerpo = abreEtiqueta(txt, m.index + m[0].length);
+        if (!cuerpo) continue;
+        for (const [, prop, valor] of cuerpo.matchAll(/(\w+)=\{([\s\S]*?)\}(?=\s|\/|$)/g)) {
+          // `providers={lista.map(p => p.id)}` contiene "=>" pero entrega un
+          // array. Solo importa cuando el valor mismo es la función.
+          const esFuncion = /^\s*(async\s*)?(\([^)]*\)|\w+)\s*=>/.test(valor) || /^\s*(async\s+)?function\b/.test(valor);
+          if (prop !== "action" && esFuncion) {
+            culpables.push(`${f}: <${nombre} ${prop}={…=>…}`);
+          }
+        }
+      }
+    }
+  }
+  assert.deepEqual(culpables, [], "props de función cruzando la frontera:\n" + culpables.join("\n"));
 });
 
 /* -------------------------------- dns ----------------------------------- */
@@ -298,7 +365,10 @@ test("injects into a page with no <head>", () => {
 test("cannot break out of the inline script tag", () => {
   const evil = { ...config, address: "</script><script>alert(1)</script>" };
   const out = injectIntoHtml("<head></head>", evil);
-  const json = out.slice(out.indexOf("window.__SITE__="), out.indexOf("</script>"));
+  // El cierre que delimita el bloque es el que sigue al config, no el primero
+  // del documento: antes va el <script> de datos estructurados.
+  const desde = out.indexOf("window.__SITE__=");
+  const json = out.slice(desde, out.indexOf("</script>", desde));
   assert.ok(!json.includes("</script>"));
   assert.ok(json.includes("\\u003c/script\\u003e"));
 });
