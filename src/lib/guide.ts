@@ -219,6 +219,7 @@ Reglas:
 8. ¿La página se ve bien si **todos** los datos de contacto estuvieran vacíos?
 9. ¿Responsive y con \`<meta name="viewport" content="width=device-width, initial-scale=1">\`?
 10. ¿Título, descripción y \`og:image\` (1200×630) puestos?
+11. ¿La esquina inferior derecha está libre y el footer tiene \`padding-bottom\` para el chip? (sección 8)
 
 ---
 
@@ -279,14 +280,46 @@ todo lo demás dentro de \`assets/\`.
 
 ---
 
-## 8. El chip "Powered by"
+## 8. Espacio reservado para el chip "Powered by"
 
-Las landings que viven en un subdominio de \`${ctx.rootDomain}\` muestran automáticamente un chip flotante
-abajo a la derecha. Lo inyecta la plataforma, va aislado en un shadow DOM y no hereda el CSS de la página:
-**no lo agregues tú ni intentes ocultarlo**. Desaparece solo cuando el sitio se sirve desde el dominio propio
-del cliente.
+Las landings que viven en un subdominio de \`${ctx.rootDomain}\` muestran un chip flotante abajo a la derecha.
+Lo inyecta la plataforma, va aislado en un shadow DOM y no hereda el CSS de la página: **no lo agregues tú ni
+intentes ocultarlo**. Desaparece solo cuando el sitio se sirve desde el dominio propio del cliente.
 
-Lo único que conviene: no pongas nada fijo en esa esquina —un botón flotante de WhatsApp, un widget de chat—
-o se van a encimar. Si necesitas un botón flotante, ponlo abajo a la **izquierda**.
+**Deja libre esta zona:**
+
+\`\`\`
+                                    ┌──────────────────────┐
+   esquina inferior derecha    →    │  Powered by …        │  ~44 px de alto
+   ~200 × 44 px, más 16 px          └──────────────────────┘
+   de margen al borde                        ↕ 16 px
+   ─────────────────────────────────────────────────────────  borde inferior
+\`\`\`
+
+Reglas concretas:
+
+1. **No pongas nada \`position: fixed\` en la esquina inferior derecha.** Ni botón de WhatsApp, ni widget de
+   chat, ni "volver arriba", ni banner de cookies anclado a esa esquina.
+2. **Si necesitas un botón flotante, ponlo abajo a la izquierda:**
+   \`\`\`css
+   .fab { position: fixed; left: 20px; bottom: 20px; }
+   \`\`\`
+3. **Dale aire al footer.** En móvil el chip se encima del contenido final si el footer termina pegado al
+   borde. Agrega \`padding-bottom: 72px\` al footer, o \`80px\` si tu footer tiene texto en la última línea:
+   \`\`\`css
+   footer { padding-bottom: 72px; }
+   @media (min-width: 768px) { footer { padding-bottom: 48px; } }
+   \`\`\`
+4. **Nada crítico en esa esquina**: ni un enlace, ni un dato de contacto, ni parte de una imagen que importe.
+
+Si de todas formas hay algo fijo ahí, el chip lo detecta y se acomoda encima —también cuando el widget carga
+tarde—, pero el resultado se ve mejor si dejas el espacio desde el diseño.
+
+Si por alguna razón la esquina derecha es intocable, puedes moverlo a la izquierda con un atributo en el
+\`<body>\`:
+
+\`\`\`html
+<body data-site-badge="left">
+\`\`\`
 `;
 }

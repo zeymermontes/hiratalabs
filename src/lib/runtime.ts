@@ -143,6 +143,126 @@ export const SITE_RUNTIME = `
     });
   }
 
+  /**
+   * Floating widgets — WhatsApp buttons, chat bubbles, cookie bars — almost
+   * always live in the bottom-right corner too. Find the ones that would sit
+   * under the chip and stack above them instead of overlapping.
+   */
+  function obstacles(mount) {
+    var found = [];
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    var scanned = 0;
+
+    function consider(el) {
+      if (scanned++ > 400) return;
+      if (el === mount || mount.contains(el)) return;
+
+      var cs;
+      try { cs = getComputedStyle(el); } catch (e) { return; }
+      if (cs.position !== "fixed" && cs.position !== "sticky") return;
+      if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") return;
+
+      var r = el.getBoundingClientRect();
+      if (r.width < 8 || r.height < 8) return;
+      // Skip full-screen overlays and page-wide bars: those are not FABs.
+      if (r.width * r.height > vw * vh * 0.4) return;
+      if (r.width > vw * 0.9) return;
+      // Only what sits in the lower part of the screen can collide with us.
+      if (r.bottom < vh * 0.5) return;
+
+      found.push(r);
+    }
+
+    var kids = document.body.children;
+    for (var i = 0; i < kids.length; i++) {
+      consider(kids[i]);
+      var grand = kids[i].children;
+      for (var j = 0; j < grand.length && j < 12; j++) consider(grand[j]);
+    }
+    return found;
+  }
+
+  // Touching at exactly the gap counts as clear, otherwise stacking above an
+  // obstacle lands right back on it and the search gives up.
+  function overlaps(a, b, pad) {
+    return !(
+      a.right + pad <= b.left ||
+      a.left - pad >= b.right ||
+      a.bottom + pad <= b.top ||
+      a.top - pad >= b.bottom
+    );
+  }
+
+  function place(mount, link) {
+    var M = 16;
+    var GAP = 10;
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+
+    // An author can pin it explicitly: <body data-site-badge="left">
+    var pinned = (document.body.getAttribute("data-site-badge") || "").toLowerCase();
+
+    link.style.left = "auto";
+    link.style.top = "auto";
+    link.style.right = M + "px";
+    link.style.bottom = M + "px";
+
+    var size = link.getBoundingClientRect();
+    var w = size.width;
+    var h = size.height;
+    if (!w || !h) return;
+
+    if (pinned === "left" || pinned === "right") {
+      if (pinned === "left") {
+        link.style.right = "auto";
+        link.style.left = M + "px";
+      }
+      return;
+    }
+
+    var blockers = obstacles(mount);
+    if (blockers.length === 0) return;
+
+    function boxAt(side, bottom) {
+      var left = side === "right" ? vw - M - w : M;
+      var top = vh - bottom - h;
+      return { left: left, right: left + w, top: top, bottom: top + h };
+    }
+
+    function freeSide(side) {
+      var bottom = M;
+      // Climb over stacked widgets, but never crawl up the whole page.
+      for (var step = 0; step < 4; step++) {
+        var box = boxAt(side, bottom);
+        var hit = null;
+        for (var i = 0; i < blockers.length; i++) {
+          if (overlaps(box, blockers[i], GAP)) {
+            if (!hit || blockers[i].top < hit.top) hit = blockers[i];
+          }
+        }
+        if (!hit) return bottom;
+        bottom = vh - hit.top + GAP;
+        if (bottom + h > vh * 0.6) return null;
+      }
+      return null;
+    }
+
+    var rightBottom = freeSide("right");
+    if (rightBottom !== null) {
+      link.style.bottom = Math.round(rightBottom) + "px";
+      return;
+    }
+
+    var leftBottom = freeSide("left");
+    if (leftBottom !== null) {
+      link.style.right = "auto";
+      link.style.left = M + "px";
+      link.style.bottom = Math.round(leftBottom) + "px";
+    }
+    // Nothing free: stay bottom-right rather than land somewhere strange.
+  }
+
   function poweredBy() {
     if (!S.poweredBy) return;
     if (document.getElementById("__platform_badge__")) return;
@@ -167,12 +287,12 @@ export const SITE_RUNTIME = `
       "  display: inline-flex; align-items: center; gap: 6px;",
       "  padding: 7px 13px; border-radius: 999px;",
       "  font: 500 12px/1 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;",
-      "  letter-spacing: .01em; text-decoration: none;",
+      "  letter-spacing: .01em; text-decoration: none; white-space: nowrap;",
       "  color: #fff; background: rgba(17,19,23,.88);",
       "  border: 1px solid rgba(255,255,255,.14);",
       "  box-shadow: 0 2px 10px rgba(0,0,0,.18);",
       "  backdrop-filter: saturate(180%) blur(8px);",
-      "  opacity: .72; transition: opacity .18s ease, transform .18s ease;",
+      "  opacity: .72; transition: opacity .18s ease, transform .18s ease, bottom .2s ease, left .2s ease;",
       "}",
       "a:hover, a:focus-visible { opacity: 1; transform: translateY(-1px); }",
       "a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }",
@@ -182,6 +302,24 @@ export const SITE_RUNTIME = `
 
     root.appendChild(style);
     root.appendChild(link);
+
+    var timer = null;
+    function reposition() {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(function () { place(mount, link); }, 120);
+    }
+
+    place(mount, link);
+    window.addEventListener("resize", reposition);
+
+    // Chat widgets and cookie bars usually arrive after load, so keep looking
+    // for a while instead of deciding once.
+    if (window.MutationObserver) {
+      var mo = new MutationObserver(reposition);
+      mo.observe(document.body, { childList: true });
+      setTimeout(function () { mo.disconnect(); }, 20000);
+    }
+    [600, 1500, 4000, 9000].forEach(function (ms) { setTimeout(reposition, ms); });
   }
 
   function init() {
