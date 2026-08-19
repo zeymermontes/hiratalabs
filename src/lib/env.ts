@@ -18,6 +18,10 @@ export const env = {
   get adminHost() {
     return req("ADMIN_HOST", `admin.${process.env.ROOT_DOMAIN ?? "hiratalabs.com"}`).toLowerCase();
   },
+  /** Shown in the "powered by" chip on platform subdomains. */
+  get platformName() {
+    return opt("PLATFORM_NAME", "Hirata Labs");
+  },
   get adminUrl() {
     return opt("NEXT_PUBLIC_ADMIN_URL", "http://localhost:3000");
   },

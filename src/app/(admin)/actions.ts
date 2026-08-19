@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
-  domains, globalSettings, siteFiles, siteSettings, siteVersions, sites,
+  domains, siteFiles, siteSettings, siteVersions, sites,
 } from "@/lib/db/schema";
 import { env, RESERVED_SLUGS } from "@/lib/env";
 import { cacheClear } from "@/lib/filecache";
@@ -247,18 +247,6 @@ export async function saveSiteSettings(_prev: ActionState, form: FormData): Prom
 
   await refreshSite(siteId);
   return { ok: true, message: "Datos de contacto guardados. Ya se ven en la landing." };
-}
-
-export async function saveGlobalSettings(_prev: ActionState, form: FormData): Promise<ActionState> {
-  await requireAdmin();
-  const values = settingsFromForm(form);
-
-  await db.insert(globalSettings).values({ id: "default", ...values })
-    .onConflictDoUpdate({ target: globalSettings.id, set: values });
-
-  invalidateSiteCache();
-  revalidatePath("/", "layout");
-  return { ok: true, message: "Valores globales guardados." };
 }
 
 export async function sendTestMail(_prev: ActionState, form: FormData): Promise<ActionState> {

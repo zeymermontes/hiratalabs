@@ -27,7 +27,12 @@ Visitante → hiratalabs.com wildcard DNS → Render (este app)
 Puntos clave:
 
 - **Los datos de contacto no viven en el ZIP.** Se inyectan en cada request, así que
-  cambiar un teléfono en el panel actualiza todas las landings al instante.
+  cambiar un teléfono en el panel se refleja al instante.
+- **Cada sitio es dueño de sus datos.** No hay herencia de valores globales: lo que
+  dejas vacío no se muestra, y el elemento que lo contenía se oculta solo.
+- **Las landings en subdominio muestran un chip "Powered by"** abajo a la derecha,
+  inyectado por la plataforma en un shadow DOM. Los dominios propios no lo llevan,
+  y el sitio principal tampoco.
 - **Las versiones son inmutables.** Publicar es apuntar `sites.active_version_id` a otra
   versión; volver atrás es instantáneo.
 - **Los formularios se guardan antes de enviarse.** Si Resend falla, el lead no se pierde.
@@ -37,7 +42,8 @@ Puntos clave:
 ### 1. Supabase
 
 1. Crea el proyecto.
-2. **SQL Editor** → pega y ejecuta [`drizzle/0000_init.sql`](drizzle/0000_init.sql).
+2. **SQL Editor** → pega y ejecuta [`drizzle/0000_init.sql`](drizzle/0000_init.sql) y
+   luego [`drizzle/0001_drop_global_settings.sql`](drizzle/0001_drop_global_settings.sql).
 3. **Storage** → crea un bucket llamado `landings`, **privado**.
 4. **Project Settings → API** → copia `URL`, `anon key` y `service_role key`.
 5. **Project Settings → Database → Connection string** → pestaña **Session pooler** →
@@ -153,6 +159,8 @@ npm run dev
 Está documentado en el panel, en **Guía para IA**, con botón de copiar. Resumen:
 
 - `index.html` en la raíz del ZIP, rutas relativas, sin build step.
+- Favicon propio (`favicon.ico`, `favicon.svg`, `apple-touch-icon.png`) en la raíz.
+- Assets en `assets/css`, `assets/js`, `assets/img`, `assets/fonts`. Sin CDNs externos.
 - Datos de contacto vía `data-site="email"`, `data-site-href="whatsapp"` o `{{site.email}}`.
 - Formularios con `data-site-form`; el endpoint y el anti-spam se inyectan solos.
 

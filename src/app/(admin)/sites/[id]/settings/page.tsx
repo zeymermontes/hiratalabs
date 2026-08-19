@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { sites } from "@/lib/db/schema";
-import { getGlobalSettings, getSiteSettings, resolveSettings } from "@/lib/settings";
+import { getSiteSettings } from "@/lib/settings";
 import { ContactForm } from "@/components/contact-form";
 import { TestEmailForm } from "@/components/test-email-form";
 import { saveSiteSettings } from "../../../actions";
@@ -14,21 +14,25 @@ export default async function SiteSettingsPage({ params }: { params: Promise<{ i
   const [site] = await db.select().from(sites).where(eq(sites.id, id));
   if (!site) notFound();
 
-  const [row, global, effective] = await Promise.all([
-    getSiteSettings(id),
-    getGlobalSettings(),
-    resolveSettings(id, site.name),
-  ]);
+  const row = await getSiteSettings(id);
+  const recipients = (row?.formRecipients ?? []).filter(Boolean);
 
   return (
     <div className="space-y-6">
       <p className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-600">
-        Lo que dejes vacío se hereda de los <strong>datos globales</strong>. Los cambios se reflejan en la landing
+        Estos datos son solo de <strong>{site.name}</strong>. Lo que dejes vacío no se muestra en la landing:
+        el elemento que lo contiene se oculta solo, así que nunca queda un enlace roto. Los cambios se ven
         de inmediato, sin volver a subir el ZIP.
       </p>
 
+      {recipients.length === 0 ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          Este sitio no tiene destinatarios para los formularios. Los mensajes se van a guardar en la pestaña
+          <strong> Mensajes</strong>, pero nadie va a recibir un correo.
+        </p>
+      ) : null}
+
       <ContactForm
-        scope="site"
         siteId={id}
         action={saveSiteSettings}
         values={{
@@ -38,24 +42,13 @@ export default async function SiteSettingsPage({ params }: { params: Promise<{ i
           whatsapp: row?.whatsapp ?? "",
           address: row?.address ?? "",
           socials: row?.socials ?? {},
-          formRecipients: row?.formRecipients ?? [],
+          formRecipients: recipients,
           formSubject: row?.formSubject ?? "",
           custom: row?.custom ?? {},
         }}
-        inherited={{
-          brandName: global?.brandName ?? "",
-          email: global?.email ?? "",
-          phone: global?.phone ?? "",
-          whatsapp: global?.whatsapp ?? "",
-          address: global?.address ?? "",
-          socials: global?.socials ?? {},
-          formRecipients: global?.formRecipients ?? [],
-          formSubject: global?.formSubject ?? "",
-          custom: global?.custom ?? {},
-        }}
       />
 
-      <TestEmailForm defaultTo={effective.formRecipients.join(", ")} siteName={site.name} />
+      <TestEmailForm defaultTo={recipients.join(", ")} siteName={site.name} />
     </div>
   );
 }

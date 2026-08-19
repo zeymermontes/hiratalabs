@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { globalSettings, siteSettings } from "@/lib/db/schema";
+import { siteSettings } from "@/lib/db/schema";
+import { env } from "@/lib/env";
 
 export type SocialKey =
   | "instagram" | "facebook" | "x" | "linkedin" | "tiktok"
@@ -23,22 +24,6 @@ export type EffectiveSettings = {
   custom: Record<string, string>;
 };
 
-const EMPTY: EffectiveSettings = {
-  brandName: "", email: "", phone: "", whatsapp: "", address: "",
-  socials: {}, formRecipients: [], formSubject: "", custom: {},
-};
-
-function pick(a: string | null | undefined, b: string | null | undefined) {
-  return (a && a.trim()) || (b && b.trim()) || "";
-}
-
-export async function getGlobalSettings() {
-  const [row] = await db.select().from(globalSettings).where(eq(globalSettings.id, "default"));
-  if (row) return row;
-  const [created] = await db.insert(globalSettings).values({ id: "default" }).returning();
-  return created;
-}
-
 export async function getSiteSettings(siteId: string) {
   const [row] = await db.select().from(siteSettings).where(eq(siteSettings.siteId, siteId));
   if (row) return row;
@@ -46,27 +31,30 @@ export async function getSiteSettings(siteId: string) {
   return created;
 }
 
-/** Per-site values win; blanks inherit from the global defaults. */
+/**
+ * Each site owns its data outright — there is no fallback to a shared default.
+ * A field left empty stays empty, and the runtime hides the element that would
+ * have shown it.
+ */
 export async function resolveSettings(siteId: string, siteName: string): Promise<EffectiveSettings> {
-  const [g, s] = await Promise.all([getGlobalSettings(), getSiteSettings(siteId)]);
-  if (!g || !s) return { ...EMPTY, brandName: siteName };
+  const s = await getSiteSettings(siteId);
 
+  const clean = (v: string | null | undefined) => (v ?? "").trim();
   const socials: Record<string, string> = {};
-  for (const key of new Set([...Object.keys(g.socials ?? {}), ...Object.keys(s.socials ?? {})])) {
-    const v = pick(s.socials?.[key], g.socials?.[key]);
-    if (v) socials[key] = v;
+  for (const [key, value] of Object.entries(s?.socials ?? {})) {
+    if (value && value.trim()) socials[key] = value.trim();
   }
 
   return {
-    brandName: pick(s.brandName, g.brandName) || siteName,
-    email: pick(s.email, g.email),
-    phone: pick(s.phone, g.phone),
-    whatsapp: pick(s.whatsapp, g.whatsapp),
-    address: pick(s.address, g.address),
+    brandName: clean(s?.brandName) || siteName,
+    email: clean(s?.email),
+    phone: clean(s?.phone),
+    whatsapp: clean(s?.whatsapp),
+    address: clean(s?.address),
     socials,
-    formRecipients: s.formRecipients?.length ? s.formRecipients : (g.formRecipients ?? []),
-    formSubject: pick(s.formSubject, g.formSubject) || "Nuevo mensaje desde {site}",
-    custom: { ...(g.custom ?? {}), ...(s.custom ?? {}) },
+    formRecipients: (s?.formRecipients ?? []).filter(Boolean),
+    formSubject: clean(s?.formSubject) || "Nuevo mensaje desde {site}",
+    custom: s?.custom ?? {},
   };
 }
 
@@ -77,6 +65,7 @@ export function publicSiteConfig(
   site: { id: string; name: string; slug: string },
   s: EffectiveSettings,
   host: string,
+  options: { poweredBy?: boolean } = {},
 ) {
   const waDigits = s.whatsapp.replace(DIGITS, "").replace(/^\+/, "");
   const telDigits = s.phone.replace(DIGITS, "");
@@ -98,6 +87,10 @@ export function publicSiteConfig(
     custom: s.custom,
     formEndpoint: "/api/f/submit",
     year: new Date().getFullYear(),
+    /** Shown only on platform subdomains, never on a client's own domain. */
+    poweredBy: options.poweredBy === true,
+    poweredByName: env.platformName,
+    poweredByUrl: `https://${env.rootDomain}`,
   };
 }
 

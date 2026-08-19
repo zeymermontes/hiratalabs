@@ -143,9 +143,51 @@ export const SITE_RUNTIME = `
     });
   }
 
+  function poweredBy() {
+    if (!S.poweredBy) return;
+    if (document.getElementById("__platform_badge__")) return;
+
+    var mount = document.createElement("div");
+    mount.id = "__platform_badge__";
+    document.body.appendChild(mount);
+
+    // Shadow DOM so the landing's own CSS cannot restyle or break the chip.
+    var root = mount.attachShadow ? mount.attachShadow({ mode: "open" }) : mount;
+    var link = document.createElement("a");
+    link.href = S.poweredByUrl || "/";
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = "Powered by " + (S.poweredByName || "");
+
+    var style = document.createElement("style");
+    style.textContent = [
+      ":host { all: initial; }",
+      "a {",
+      "  position: fixed; right: 16px; bottom: 16px; z-index: 2147483000;",
+      "  display: inline-flex; align-items: center; gap: 6px;",
+      "  padding: 7px 13px; border-radius: 999px;",
+      "  font: 500 12px/1 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;",
+      "  letter-spacing: .01em; text-decoration: none;",
+      "  color: #fff; background: rgba(17,19,23,.88);",
+      "  border: 1px solid rgba(255,255,255,.14);",
+      "  box-shadow: 0 2px 10px rgba(0,0,0,.18);",
+      "  backdrop-filter: saturate(180%) blur(8px);",
+      "  opacity: .72; transition: opacity .18s ease, transform .18s ease;",
+      "}",
+      "a:hover, a:focus-visible { opacity: 1; transform: translateY(-1px); }",
+      "a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }",
+      "@media (prefers-reduced-motion: reduce) { a { transition: none; } }",
+      "@media print { a { display: none; } }",
+    ].join("\\n");
+
+    root.appendChild(style);
+    root.appendChild(link);
+  }
+
   function init() {
     apply(document);
     each(document, "form[data-site-form]", bindForm);
+    poweredBy();
   }
 
   window.__SITE_APPLY__ = apply;

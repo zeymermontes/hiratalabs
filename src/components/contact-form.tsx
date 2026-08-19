@@ -30,20 +30,13 @@ const SOCIALS: { key: string; label: string; placeholder: string }[] = [
 ];
 
 export function ContactForm({
-  action, values, inherited, siteId, scope,
+  action, values, siteId,
 }: {
   action: (prev: ActionState, fd: FormData) => Promise<ActionState>;
   values: ContactValues;
-  inherited?: ContactValues;
   siteId?: string;
-  scope: "site" | "global";
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, {});
-  const ph = (field: keyof ContactValues) =>
-    scope === "site" && inherited && typeof inherited[field] === "string" && inherited[field]
-      ? `Global: ${inherited[field]}`
-      : undefined;
-
   const customText = Object.entries(values.custom).map(([k, v]) => `${k}=${v}`).join("\n");
 
   return (
@@ -54,20 +47,20 @@ export function ContactForm({
         <h3 className="mb-4 text-sm font-semibold text-neutral-900">Datos de contacto</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Nombre de marca" hint="Se expone como site.brandName.">
-            <input name="brandName" defaultValue={values.brandName} placeholder={ph("brandName") ?? "ACME"} className="input" />
+            <input name="brandName" defaultValue={values.brandName} placeholder="ACME" className="input" />
           </Field>
           <Field label="Correo público" hint="site.email · site.emailHref (mailto:)">
-            <input name="email" type="email" defaultValue={values.email} placeholder={ph("email") ?? "hola@acme.com"} className="input" />
+            <input name="email" type="email" defaultValue={values.email} placeholder="hola@acme.com" className="input" />
           </Field>
           <Field label="Teléfono" hint="site.phone · site.phoneHref (tel:)">
-            <input name="phone" defaultValue={values.phone} placeholder={ph("phone") ?? "+52 55 1234 5678"} className="input" />
+            <input name="phone" defaultValue={values.phone} placeholder="+52 55 1234 5678" className="input" />
           </Field>
           <Field label="WhatsApp" hint="Con lada, sin espacios. Genera site.whatsappHref (wa.me).">
-            <input name="whatsapp" defaultValue={values.whatsapp} placeholder={ph("whatsapp") ?? "+525512345678"} className="input" />
+            <input name="whatsapp" defaultValue={values.whatsapp} placeholder="+525512345678" className="input" />
           </Field>
           <div className="sm:col-span-2">
             <Field label="Dirección" hint="site.address · site.addressHref (Google Maps)">
-              <input name="address" defaultValue={values.address} placeholder={ph("address") ?? "Av. Reforma 123, CDMX"} className="input" />
+              <input name="address" defaultValue={values.address} placeholder="Av. Reforma 123, CDMX" className="input" />
             </Field>
           </div>
         </div>
@@ -82,7 +75,7 @@ export function ContactForm({
               <input
                 name={`social_${s.key}`}
                 defaultValue={values.socials[s.key] ?? ""}
-                placeholder={inherited?.socials[s.key] ? `Global: ${inherited.socials[s.key]}` : s.placeholder}
+                placeholder={s.placeholder}
                 className="input"
               />
             </Field>
@@ -94,21 +87,22 @@ export function ContactForm({
         <h3 className="mb-1 text-sm font-semibold text-neutral-900">Formularios de contacto</h3>
         <p className="hint mb-4">
           A dónde llegan los mensajes que envían los visitantes. Se mandan desde el remitente central vía Resend,
-          con <em>reply-to</em> al correo de quien escribió.
+          con <em>reply-to</em> al correo de quien escribió. Si lo dejas vacío, los mensajes se guardan en el panel
+          pero no se envían por correo.
         </p>
         <div className="space-y-4">
           <Field label="Correos que reciben los mensajes" hint="Uno por línea o separados por coma.">
             <textarea
               name="formRecipients" rows={3}
               defaultValue={values.formRecipients.join("\n")}
-              placeholder={inherited?.formRecipients.length ? `Global: ${inherited.formRecipients.join(", ")}` : "ventas@acme.com"}
+              placeholder="ventas@acme.com"
               className="input"
             />
           </Field>
           <Field label="Asunto del correo" hint="{site} = nombre del sitio · {form} = nombre del formulario.">
             <input
               name="formSubject" defaultValue={values.formSubject}
-              placeholder={ph("formSubject") ?? "Nuevo mensaje desde {site}"} className="input"
+              placeholder="Nuevo mensaje desde {site}" className="input"
             />
           </Field>
         </div>
@@ -118,7 +112,8 @@ export function ContactForm({
         <h3 className="mb-1 text-sm font-semibold text-neutral-900">Valores personalizados</h3>
         <p className="hint mb-4">
           Una línea por valor: <code className="rounded bg-neutral-100 px-1">clave=valor</code>. Llegan a la landing
-          como <code className="rounded bg-neutral-100 px-1">site.custom.clave</code>.
+          como <code className="rounded bg-neutral-100 px-1">site.custom.clave</code>. Lo que dejes vacío
+          simplemente no aparece en la página.
         </p>
         <textarea name="custom" rows={4} defaultValue={customText} placeholder={"horario=Lun a Vie 9-18\nrfc=ACM123456ABC"} className="input font-mono text-xs" />
       </section>

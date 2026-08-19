@@ -44,7 +44,12 @@ async function lookup(host: string): Promise<ResolvedSite | null> {
   }
 
   const settings = await resolveSettings(site.id, site.name);
-  return { site, version, config: publicSiteConfig(site, settings, host) };
+
+  // The chip marks sites living on a platform subdomain. A client's own domain
+  // and the platform's own home page never carry it.
+  const poweredBy = slug !== null && slug !== APEX_SLUG;
+
+  return { site, version, config: publicSiteConfig(site, settings, host, { poweredBy }) };
 }
 
 export async function resolveSiteByHost(host: string): Promise<ResolvedSite | null> {

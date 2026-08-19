@@ -26,18 +26,76 @@ o en el dominio propio del cliente. Además e
 
 ## 1. Estructura del ZIP
 
-- \`index.html\` **en la raíz del ZIP** (no dentro de una carpeta).
-- Rutas relativas para todo: \`./assets/style.css\`, \`./img/hero.webp\`. Nunca rutas absolutas a otro dominio.
-- Opcional: \`404.html\` en la raíz — se sirve cuando la URL no existe.
-- Subpáginas: \`gracias.html\` responde en \`/gracias\` y también en \`/gracias.html\`.
+Esta es la estructura exacta que se espera. Respétala: el importador busca
+\`index.html\` en la raíz y sirve todo lo demás por ruta relativa.
+
+\`\`\`
+landing.zip
+├── index.html            ← obligatorio, en la raíz del ZIP
+├── 404.html              ← opcional, se sirve cuando la URL no existe
+├── gracias.html          ← opcional, responde en /gracias y en /gracias.html
+├── favicon.ico           ← obligatorio (ver sección 2)
+├── favicon.svg           ← recomendado
+├── apple-touch-icon.png  ← recomendado, 180×180
+├── site.webmanifest      ← opcional
+├── robots.txt            ← opcional
+└── assets/
+    ├── css/
+    │   └── style.css
+    ├── js/
+    │   └── main.js       ← opcional
+    ├── img/
+    │   ├── hero.webp
+    │   └── og-image.jpg  ← 1200×630 para redes sociales
+    └── fonts/
+        └── *.woff2       ← solo si usas tipografías propias
+\`\`\`
+
+Reglas:
+
+- \`index.html\` **en la raíz del ZIP**, no dentro de una carpeta. Comprime desde *adentro* de la carpeta del
+  proyecto. Si aun así todo queda envuelto en una sola carpeta, el importador la detecta y la quita.
+- **Rutas relativas siempre**: \`./assets/css/style.css\`, \`./assets/img/hero.webp\`. Nunca rutas absolutas a
+  otro dominio, ni \`/assets/...\` con diagonal inicial.
+- **Sin CDNs externos.** Nada de Google Fonts por \`<link>\`, Font Awesome, jQuery desde unpkg, Tailwind por CDN.
+  Descarga lo que necesites a \`assets/\` y sírvelo desde ahí. Si necesitas tipografías, ponlas en
+  \`assets/fonts/\` y declara \`@font-face\`.
 - Extensiones permitidas: html, css, js, mjs, json, xml, txt, svg, png, jpg, jpeg, gif, webp, avif, ico,
-  woff, woff2, ttf, otf, mp4, webm, mp3, pdf, webmanifest, map.
+  woff, woff2, ttf, otf, mp4, webm, mp3, pdf, webmanifest, map. **Todo lo demás se descarta al importar.**
 - **Sin build step, sin backend, sin Node.** Si usas un framework, exporta a HTML estático antes de comprimir.
-- Todo lo que no esté en la lista de extensiones se descarta al importar.
+- Imágenes en \`.webp\` o \`.avif\` cuando se pueda, con \`loading="lazy"\` en todo lo que no esté en el primer
+  pantallazo.
 
 ---
 
-## 2. Nunca escribas los datos de contacto a mano
+## 2. Favicon
+
+**Toda landing debe traer su propio favicon.** Es lo que distingue una pestaña de otra y sin él el navegador
+muestra un ícono genérico. Genera los archivos y ponlos **en la raíz del ZIP**, no dentro de \`assets/\`.
+
+Archivos:
+
+| Archivo | Tamaño | Para qué |
+|---|---|---|
+| \`favicon.ico\` | 32×32 (o multi-tamaño 16/32/48) | Navegadores viejos, obligatorio |
+| \`favicon.svg\` | vectorial | Navegadores modernos, escala perfecto |
+| \`apple-touch-icon.png\` | 180×180 | iOS al guardar en pantalla de inicio |
+
+Y en el \`<head>\` de **todas** las páginas:
+
+\`\`\`html
+<link rel="icon" href="./favicon.ico" sizes="32x32">
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+\`\`\`
+
+El favicon debe salir de la identidad del cliente: su logotipo, su inicial o su símbolo, sobre un fondo que
+contraste. Si el logo es horizontal, usa solo el símbolo o la inicial — a 32 píxeles un logotipo completo
+no se lee. Nada de emojis genéricos ni de dejar el favicon por defecto del framework.
+
+---
+
+## 3. Nunca escribas los datos de contacto a mano
 
 El correo, teléfono, WhatsApp, dirección y redes sociales **se administran desde el panel**.
 Si los hardcodeas, dejan de actualizarse y el cliente tendrá datos viejos para siempre.
@@ -88,7 +146,7 @@ Una clave que no exista se reemplaza por texto vacío, nunca se ve el \`{{ }}\` 
 
 ---
 
-## 3. Valores disponibles
+## 4. Valores disponibles
 
 Todos viven también en \`window.__SITE__\` por si necesitas leerlos desde tu propio JS.
 
@@ -113,7 +171,7 @@ ${customList}
 
 ---
 
-## 4. Formulario de contacto
+## 5. Formulario de contacto
 
 **No uses Formspree, Netlify Forms, Google Forms ni \`mailto:\` en el \`action\`.**
 La plataforma recibe el envío, lo guarda y lo manda por correo (Resend) a quien esté configurado en el panel.
@@ -149,19 +207,22 @@ Reglas:
 
 ---
 
-## 5. Checklist antes de comprimir
+## 6. Checklist antes de comprimir
 
 1. ¿\`index.html\` está en la raíz del ZIP?
-2. ¿Cero correos, teléfonos o links de redes escritos a mano en el HTML?
-3. ¿El formulario usa \`data-site-form\` y no un servicio externo?
-4. ¿Las rutas de imágenes, CSS y JS son relativas?
-5. ¿La página se ve bien si **todos** los datos de contacto estuvieran vacíos?
-6. ¿Responsive y con \`<meta name="viewport" content="width=device-width, initial-scale=1">\`?
-7. ¿Título, descripción y \`og:image\` puestos?
+2. ¿Están \`favicon.ico\`, \`favicon.svg\` y \`apple-touch-icon.png\` en la raíz, con sus \`<link>\` en el \`<head>\`?
+3. ¿Los assets siguen la estructura \`assets/css\`, \`assets/js\`, \`assets/img\`, \`assets/fonts\`?
+4. ¿Cero CDNs externos? (fuentes, íconos y librerías descargados a \`assets/\`)
+5. ¿Cero correos, teléfonos o links de redes escritos a mano en el HTML?
+6. ¿El formulario usa \`data-site-form\` y no un servicio externo?
+7. ¿Todas las rutas son relativas, con \`./\` y sin diagonal inicial?
+8. ¿La página se ve bien si **todos** los datos de contacto estuvieran vacíos?
+9. ¿Responsive y con \`<meta name="viewport" content="width=device-width, initial-scale=1">\`?
+10. ¿Título, descripción y \`og:image\` (1200×630) puestos?
 
 ---
 
-## 6. Ejemplo mínimo completo
+## 7. Ejemplo mínimo completo
 
 \`\`\`html
 <!doctype html>
@@ -170,7 +231,16 @@ Reglas:
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{site.brandName}}</title>
-  <link rel="stylesheet" href="./assets/style.css">
+  <meta name="description" content="…">
+
+  <link rel="icon" href="./favicon.ico" sizes="32x32">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+
+  <meta property="og:title" content="{{site.brandName}}">
+  <meta property="og:image" content="./assets/img/og-image.jpg">
+
+  <link rel="stylesheet" href="./assets/css/style.css">
 </head>
 <body>
   <header>
@@ -204,16 +274,19 @@ Reglas:
 </html>
 \`\`\`
 
-Entrega el resultado como un ZIP con esta estructura:
+Entrega el resultado como un ZIP con la estructura de la sección 1: \`index.html\` y los favicons en la raíz,
+todo lo demás dentro de \`assets/\`.
 
-\`\`\`
-landing.zip
-├── index.html
-├── 404.html          (opcional)
-└── assets/
-    ├── style.css
-    ├── script.js     (opcional)
-    └── img/
-\`\`\`
+---
+
+## 8. El chip "Powered by"
+
+Las landings que viven en un subdominio de \`${ctx.rootDomain}\` muestran automáticamente un chip flotante
+abajo a la derecha. Lo inyecta la plataforma, va aislado en un shadow DOM y no hereda el CSS de la página:
+**no lo agregues tú ni intentes ocultarlo**. Desaparece solo cuando el sitio se sirve desde el dominio propio
+del cliente.
+
+Lo único que conviene: no pongas nada fijo en esa esquina —un botón flotante de WhatsApp, un widget de chat—
+o se van a encimar. Si necesitas un botón flotante, ponlo abajo a la **izquierda**.
 `;
 }

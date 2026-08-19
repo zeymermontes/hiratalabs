@@ -1,24 +1,29 @@
 import { desc } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { sites } from "@/lib/db/schema";
+import { siteSettings, sites } from "@/lib/db/schema";
 import { env } from "@/lib/env";
 import { buildGuide } from "@/lib/guide";
-import { getGlobalSettings, SOCIAL_KEYS } from "@/lib/settings";
+import { SOCIAL_KEYS } from "@/lib/settings";
 import { PageHeader } from "@/components/ui";
 import { CopyButton } from "./copy-button";
 
 export const dynamic = "force-dynamic";
 
 export default async function GuidePage() {
-  const [global, recent] = await Promise.all([
-    getGlobalSettings(),
+  const [allCustom, recent] = await Promise.all([
+    db.select({ custom: siteSettings.custom }).from(siteSettings),
     db.select({ slug: sites.slug }).from(sites).orderBy(desc(sites.updatedAt)).limit(1),
   ]);
+
+  // Custom keys are per site now, so show the union of what is actually in use.
+  const customKeys = Array.from(
+    new Set(allCustom.flatMap((row) => Object.keys(row.custom ?? {}))),
+  ).sort();
 
   const guide = buildGuide({
     rootDomain: env.rootDomain,
     socialKeys: SOCIAL_KEYS,
-    customKeys: Object.keys(global?.custom ?? {}),
+    customKeys,
     exampleSlug: recent[0]?.slug ?? "cliente",
   });
 
