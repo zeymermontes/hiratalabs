@@ -7,7 +7,11 @@ import { Field } from "@/components/ui";
 export function MetaForm({
   site, rootDomain,
 }: {
-  site: { id: string; name: string; slug: string; maintenanceTitle: string | null; maintenanceMessage: string | null; notes: string | null };
+  site: {
+    id: string; name: string; slug: string;
+    maintenanceTitle: string | null; maintenanceMessage: string | null;
+    notes: string | null; showPoweredBy: boolean;
+  };
   rootDomain: string;
 }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(updateSiteMeta, {});
@@ -25,6 +29,24 @@ export function MetaForm({
           <Field label="Subdominio" hint={`Quedará en <slug>.${rootDomain}. Con "www" responde en ${rootDomain}.`}>
             <input name="slug" defaultValue={site.slug} required className="input" />
           </Field>
+        </div>
+
+        <div className="border-t border-neutral-200 pt-4">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox" name="showPoweredBy" defaultChecked={site.showPoweredBy}
+              className="mt-0.5 h-4 w-4 rounded border-neutral-300"
+            />
+            <span>
+              <span className="text-sm font-medium text-neutral-900">
+                Mostrar el chip &ldquo;Powered by Hirata Labs&rdquo;
+              </span>
+              <span className="hint mt-0.5 block">
+                Aparece abajo a la derecha en las landings servidas desde un subdominio. Los dominios
+                propios del cliente y el sitio principal nunca lo llevan, esté marcado o no.
+              </span>
+            </span>
+          </label>
         </div>
 
         <div className="border-t border-neutral-200 pt-4">

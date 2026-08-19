@@ -58,8 +58,9 @@ async function lookup(host: string): Promise<ResolvedSite | null> {
     : null;
 
   // The chip marks sites living on a platform subdomain. A client's own domain
-  // and the platform's own home page never carry it.
-  const poweredBy = slug !== null && slug !== APEX_SLUG;
+  // and the platform's own home page never carry it, and it can be switched off
+  // per site from the panel.
+  const poweredBy = site.showPoweredBy && slug !== null && slug !== APEX_SLUG;
 
   return { site, version, config: publicSiteConfig(site, settings, host, { poweredBy, chat }) };
 }

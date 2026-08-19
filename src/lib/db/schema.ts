@@ -36,6 +36,8 @@ export const sites = pgTable("sites", {
   maintenanceTitle: text("maintenance_title"),
   maintenanceMessage: text("maintenance_message"),
   activeVersionId: uuid("active_version_id"),
+  /** Applies to platform subdomains; a client's own domain never carries it. */
+  showPoweredBy: boolean("show_powered_by").notNull().default(true),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

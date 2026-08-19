@@ -18,6 +18,8 @@ const { parseScope, buildPrompt, SYSTEM_PROMPT, MAX_DESCRIPTION_CHARS } =
   await import("../src/lib/ai/prompt.ts");
 const { listModels } = await import("../src/lib/ai/providers.ts");
 const { parseManifest, MANIFEST_FILENAME } = await import("../src/lib/landing-manifest.ts");
+const { monthKey, lastMonths, findPrice, rowCost, totalsByModel } =
+  await import("../src/lib/reports.ts");
 
 let passed = 0;
 const pending = [];
@@ -301,6 +303,69 @@ test("the refusal rules live in the system prompt, not in site config", () => {
     siteName: "ACME",
   });
   assert.ok(prompt.includes("A qué se dedica:"));
+});
+
+/* -------------------------------- reports -------------------------------- */
+
+test("buckets by Mexico City, not UTC", () => {
+  // 1 de septiembre 03:00 UTC sigue siendo 31 de agosto en CDMX.
+  assert.equal(monthKey(new Date("2026-09-01T03:00:00Z")), "2026-08");
+  assert.equal(monthKey(new Date("2026-09-01T07:00:00Z")), "2026-09");
+});
+
+test("lists the last months ending in the current one", () => {
+  const months = lastMonths(6, new Date("2026-08-19T12:00:00Z"));
+  assert.equal(months.length, 6);
+  assert.equal(months[5].key, "2026-08");
+  assert.equal(months[0].key, "2026-03");
+  assert.ok(months.every((m) => m.short && m.long));
+});
+
+test("crosses the year boundary backwards", () => {
+  const months = lastMonths(3, new Date("2026-01-15T12:00:00Z"));
+  assert.deepEqual(months.map((m) => m.key), ["2025-11", "2025-12", "2026-01"]);
+});
+
+const PRICES = [
+  { provider: "anthropic", model: "claude-opus-5", inputPriceMicros: 5_000_000, outputPriceMicros: 25_000_000 },
+  { provider: "deepseek", model: "deepseek-v4-pro", inputPriceMicros: 0, outputPriceMicros: 0 },
+];
+
+test("a zero price counts as unpriced, not free", () => {
+  assert.ok(findPrice(PRICES, "anthropic", "claude-opus-5"));
+  assert.equal(findPrice(PRICES, "deepseek", "deepseek-v4-pro"), null);
+  assert.equal(findPrice(PRICES, "openai", "lo-que-sea"), null);
+});
+
+test("adds up cost, calls and tokens per model", () => {
+  const rows = [
+    { provider: "anthropic", model: "claude-opus-5", ok: true, inputTokens: 1000, outputTokens: 200, createdAt: new Date() },
+    { provider: "anthropic", model: "claude-opus-5", ok: true, inputTokens: 500, outputTokens: 100, createdAt: new Date() },
+    { provider: "anthropic", model: "claude-opus-5", ok: false, inputTokens: 999, outputTokens: 999, createdAt: new Date() },
+    { provider: "deepseek", model: "deepseek-v4-pro", ok: true, inputTokens: 800, outputTokens: 300, createdAt: new Date() },
+  ];
+  const out = totalsByModel(rows, PRICES);
+  assert.equal(out.length, 2);
+
+  const opus = out.find((m) => m.model === "claude-opus-5");
+  assert.equal(opus.calls, 2, "las llamadas con error no cuentan");
+  assert.equal(opus.tokens, 1800);
+  assert.equal(opus.cost.toFixed(6), "0.015000");
+  assert.equal(opus.priced, true);
+
+  const ds = out.find((m) => m.model === "deepseek-v4-pro");
+  assert.equal(ds.priced, false);
+  assert.equal(ds.cost, 0);
+  assert.equal(ds.tokens, 1100, "los tokens se cuentan aunque falte el precio");
+});
+
+test("tolerates missing token counts", () => {
+  const out = totalsByModel(
+    [{ provider: "anthropic", model: "claude-opus-5", ok: true, inputTokens: null, outputTokens: null, createdAt: new Date() }],
+    PRICES,
+  );
+  assert.equal(out[0].tokens, 0);
+  assert.equal(out[0].cost, 0);
 });
 
 /* ------------------------------ landing.json ----------------------------- */

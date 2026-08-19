@@ -153,6 +153,7 @@ export async function updateSiteMeta(_prev: ActionState, form: FormData): Promis
 
   await db.update(sites).set({
     name, slug,
+    showPoweredBy: form.get("showPoweredBy") === "on",
     maintenanceTitle: String(form.get("maintenanceTitle") ?? "").trim() || null,
     maintenanceMessage: String(form.get("maintenanceMessage") ?? "").trim() || null,
     notes: String(form.get("notes") ?? "").trim() || null,
