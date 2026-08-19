@@ -73,6 +73,7 @@ export function publicSiteConfig(
       launcherLabel: string;
       welcome: string;
       serviceOptions: string[];
+      theme: Record<string, string | number> | null;
     } | null;
   } = {},
 ) {

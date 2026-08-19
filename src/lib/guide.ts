@@ -415,6 +415,48 @@ Campos de \`chat\`:
 | \`replacesForm\` | \`true\` si el chat sustituye al formulario. Solo aplica la primera vez. |
 | \`serviceOptions\` | Opciones de la primera pregunta. Máximo 8, de 80 caracteres. |
 | \`scope\` | Las restricciones del asistente. Va tal cual al campo "a qué se dedica el negocio". |
+| \`theme\` | Colores, redondeos y tipografía del chat. Ver abajo. |
+
+### Colores y forma del chat
+
+Sin \`theme\`, el chat sale en gris neutro y desentona con la landing. Declara la paleta y hereda tu marca:
+
+\`\`\`json
+"theme": {
+  "surface": "#F3F6EA",
+  "ink": "#0C0A26",
+  "onInk": "#F3F6EA",
+  "accent": "#6641E0",
+  "onAccent": "#F3F6EA",
+  "highlight": "#B7D546",
+  "radius": 14,
+  "bubbleRadius": 10,
+  "launcherShape": "circle",
+  "fontFamily": "'Cascadia Code', ui-monospace, monospace",
+  "displayFontFamily": "'Bebas Neue', 'Arial Narrow', sans-serif"
+}
+\`\`\`
+
+| Clave | Dónde se ve |
+|---|---|
+| \`surface\` | Fondo del panel |
+| \`ink\` | Barra superior y burbujas del asistente |
+| \`onInk\` | Texto sobre \`ink\` |
+| \`accent\` | Botón flotante, burbujas del visitante, botón de enviar, borde de las opciones |
+| \`onAccent\` | Texto sobre \`accent\` |
+| \`highlight\` | Subtítulo de la barra superior |
+| \`radius\` | Redondeo del panel, 0 a 40 |
+| \`bubbleRadius\` | Redondeo de las burbujas, 0 a 40 |
+| \`launcherShape\` | \`"circle"\` o \`"pill"\` |
+| \`fontFamily\` | Tipografía del chat |
+| \`displayFontFamily\` | Tipografía de títulos y botones del chat |
+
+Dos cosas que conviene saber:
+
+- **Puedes usar las tipografías que autoaloja tu landing.** El \`@font-face\` de tu CSS también aplica dentro
+  del chat, así que basta con nombrarlas.
+- **Verifica el contraste.** \`onInk\` sobre \`ink\` y \`onAccent\` sobre \`accent\` son texto que la gente tiene
+  que leer. Solo se aceptan colores; cualquier otra cosa se descarta.
 
 Campos de \`scope\`:
 

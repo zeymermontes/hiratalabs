@@ -15,7 +15,44 @@ export type ManifestChat = {
   serviceOptions?: string[];
   /** Serialized into the site's "business context" field verbatim. */
   scope?: Record<string, unknown>;
+  /** Colours, radii and typeface so the chat matches the landing. */
+  theme?: Record<string, string | number>;
 };
+
+/** Only these keys reach the widget; anything else in `theme` is dropped. */
+export const THEME_KEYS = [
+  "surface", "ink", "onInk", "accent", "onAccent", "highlight",
+  "radius", "bubbleRadius", "launcherShape", "fontFamily", "displayFontFamily",
+] as const;
+
+const COLOR = /^(#[0-9a-fA-F]{3,8}|rgb\(|rgba\(|hsl\(|hsla\()/;
+
+function theme(value: unknown): Record<string, string | number> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const src = value as Record<string, unknown>;
+  const out: Record<string, string | number> = {};
+
+  for (const key of THEME_KEYS) {
+    const v = src[key];
+    if (v === undefined || v === null) continue;
+
+    if (key === "radius" || key === "bubbleRadius") {
+      const n = Number(v);
+      if (Number.isFinite(n)) out[key] = Math.max(0, Math.min(40, n));
+    } else if (key === "launcherShape") {
+      if (v === "circle" || v === "pill") out[key] = v;
+    } else if (key === "fontFamily" || key === "displayFontFamily") {
+      // Sin url() ni expresiones: esto entra a una hoja de estilo.
+      const s = String(v).slice(0, 160);
+      if (!/[{}:;]|url\(|expression|@import/i.test(s)) out[key] = s;
+    } else {
+      const s = String(v).trim().slice(0, 40);
+      if (COLOR.test(s) && !/[;{}]/.test(s)) out[key] = s;
+    }
+  }
+
+  return Object.keys(out).length ? out : undefined;
+}
 
 export type LandingManifest = {
   chat?: ManifestChat;
@@ -65,6 +102,7 @@ export function parseManifest(raw: string): ManifestResult {
     scope: c.scope && typeof c.scope === "object" && !Array.isArray(c.scope)
       ? (c.scope as Record<string, unknown>)
       : undefined,
+    theme: theme(c.theme),
   };
 
   return { manifest: { chat }, error: null };

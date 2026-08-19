@@ -53,6 +53,7 @@ async function lookup(host: string): Promise<ResolvedSite | null> {
         launcherLabel: chatRow.launcherLabel ?? "Cotiza con IA",
         welcome: chatRow.welcome ?? "",
         serviceOptions: chatRow.serviceOptions ?? [],
+        theme: chatRow.theme ?? null,
       }
     : null;
 

@@ -94,6 +94,7 @@ async function applyManifest(siteId: string, raw: string): Promise<string> {
   fill("el texto del botón", chat.launcherLabel, current?.launcherLabel, "launcherLabel");
   fill("el mensaje de bienvenida", chat.welcome, current?.welcome, "welcome");
   fill("las opciones de la primera pregunta", chat.serviceOptions, current?.serviceOptions, "serviceOptions");
+  fill("los colores del chat", chat.theme, current?.theme, "theme");
   fill(
     "el contexto del negocio",
     chat.scope ? JSON.stringify(chat.scope, null, 2) : undefined,

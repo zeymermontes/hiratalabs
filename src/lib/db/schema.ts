@@ -208,6 +208,8 @@ export const siteChat = pgTable("site_chat", {
   businessContext: text("business_context"),
   /** Options for the opening "what do you need" question. */
   serviceOptions: text("service_options").array().default([]).notNull(),
+  /** Colours and shape so the widget matches the landing it lives on. */
+  theme: jsonb("theme").$type<Record<string, string | number>>(),
   monthlyLimit: integer("monthly_limit").notNull().default(500),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
