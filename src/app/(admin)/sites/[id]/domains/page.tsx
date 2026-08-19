@@ -16,7 +16,7 @@ export default async function DomainsPage({ params }: { params: Promise<{ id: st
     <div className="space-y-6">
       {!renderConfigured() ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          Falta configurar <code>RENDER_API_KEY</code> y <code>RENDER_SERVICE_ID</code>. Los dominios se guardan aquí,
+          Falta configurar <code>DEPLOY_API_KEY</code> en Render. Los dominios se guardan aquí,
           pero tendrás que darlos de alta a mano en Render para que emita el certificado.
         </p>
       ) : null}

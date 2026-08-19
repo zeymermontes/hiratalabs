@@ -17,8 +17,6 @@ services:
         value: admin.hiratalabs.com
       - key: NEXT_PUBLIC_ADMIN_URL
         value: https://admin.hiratalabs.com
-      - key: RENDER_SERVICE_HOST
-        sync: false
       - key: NEXT_PUBLIC_SUPABASE_URL
         sync: false
       - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -33,9 +31,9 @@ services:
         sync: false
       - key: RESEND_FROM
         sync: false
-      - key: RENDER_API_KEY
-        sync: false
-      - key: RENDER_SERVICE_ID
+      # Render reserves the RENDER_ prefix, and sets RENDER_SERVICE_ID and
+      # RENDER_EXTERNAL_HOSTNAME on its own — the app reads those directly.
+      - key: DEPLOY_API_KEY
         sync: false
       - key: BOOTSTRAP_ADMIN_EMAIL
         sync: false

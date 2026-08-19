@@ -72,10 +72,11 @@ Puntos clave:
    - `admin.hiratalabs.com`
 5. Render pedirá los CNAME `_acme-challenge` y `_cf-custom-hostname` para el wildcard:
    créalos en tu DNS. Son los que le permiten emitir y renovar el certificado.
-6. **Account Settings → API Keys** → crea una key → `RENDER_API_KEY`, y copia el
-   `srv-…` de la URL del servicio → `RENDER_SERVICE_ID`.
-7. `RENDER_SERVICE_HOST` = el host `…onrender.com` del servicio. Es el valor que los
-   clientes usarán en su CNAME.
+6. **Account Settings → API Keys** → crea una key → guárdala como `DEPLOY_API_KEY`.
+   Render reserva el prefijo `RENDER_` para sus propias variables, por eso no se llama
+   `RENDER_API_KEY`.
+7. No necesitas configurar el ID ni el host del servicio: Render inyecta
+   `RENDER_SERVICE_ID` y `RENDER_EXTERNAL_HOSTNAME` por su cuenta y el app los lee.
 
 ### 4. DNS de hiratalabs.com
 

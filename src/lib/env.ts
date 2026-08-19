@@ -45,15 +45,20 @@ export const env = {
   get resendBcc() {
     return opt("RESEND_BCC");
   },
+  /**
+   * Render reserves the RENDER_ prefix for its own variables, so the API key
+   * lives under a name of our own.
+   */
   get renderApiKey() {
-    return opt("RENDER_API_KEY");
+    return opt("DEPLOY_API_KEY") || opt("RENDER_API_KEY");
   },
+  /** Set automatically by Render at runtime; only needed by hand for local dev. */
   get renderServiceId() {
     return opt("RENDER_SERVICE_ID");
   },
-  /** The onrender.com hostname clients point their DNS at. */
+  /** The onrender.com hostname clients point their DNS at. Render provides it. */
   get renderServiceHost() {
-    return opt("RENDER_SERVICE_HOST", "landings.onrender.com");
+    return opt("RENDER_EXTERNAL_HOSTNAME") || opt("RENDER_SERVICE_HOST", "landings.onrender.com");
   },
   get maxZipBytes() {
     return Number(opt("MAX_ZIP_BYTES", "104857600"));
