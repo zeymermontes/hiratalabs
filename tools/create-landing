@@ -1,0 +1,334 @@
+#!/usr/bin/env node
+/**
+ * create-landing <carpeta> [--out archivo.zip] [--force]
+ *
+ * Revisa una carpeta de landing contra el contrato de la plataforma y, si pasa,
+ * arma el ZIP listo para subir al panel. Ver README.md en esta misma carpeta.
+ */
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, extname, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const C = {
+  reset: "\x1b[0m", dim: "\x1b[2m", bold: "\x1b[1m",
+  red: "\x1b[31m", yellow: "\x1b[33m", green: "\x1b[32m", blue: "\x1b[36m",
+};
+
+const ALLOWED = new Set([
+  "html", "htm", "css", "js", "mjs", "json", "xml", "txt", "md", "csv",
+  "svg", "png", "jpg", "jpeg", "gif", "webp", "avif", "ico", "bmp",
+  "woff", "woff2", "ttf", "otf", "eot",
+  "mp4", "webm", "mov", "mp3", "wav", "ogg", "pdf", "map", "webmanifest",
+]);
+
+const JUNK = /(^|\/)(__MACOSX\/|\.DS_Store$|Thumbs\.db$|desktop\.ini$|\.git($|\/))/i;
+
+const MAX_FILES = 3000;
+const MAX_BYTES = 100 * 1024 * 1024;
+
+const errors = [];
+const warnings = [];
+const notes = [];
+
+const err = (msg, where) => errors.push({ msg, where });
+const warn = (msg, where) => warnings.push({ msg, where });
+const note = (msg) => notes.push(msg);
+
+/* ------------------------------ argumentos ------------------------------ */
+
+const args = process.argv.slice(2);
+if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
+  console.log(`
+${C.bold}create-landing${C.reset} <carpeta> [--out archivo.zip] [--force]
+
+  Revisa la carpeta contra el contrato de la plataforma y arma el ZIP.
+
+  ${C.dim}--out${C.reset}      Ruta del ZIP. Por defecto <carpeta>.zip junto a la carpeta.
+  ${C.dim}--fix${C.reset}      Adapta el export al contrato: autoaloja fuentes, conecta los datos
+            de contacto al panel, marca el formulario y escribe landing.json.
+  ${C.dim}--favicon${C.reset}  Imagen de la que generar los favicons que falten.
+  ${C.dim}--force${C.reset}    Arma el ZIP aunque haya errores. Úsalo sabiendo lo que ignoras.
+`);
+  process.exit(0);
+}
+
+const force = args.includes("--force");
+const fix = args.includes("--fix");
+const faviconIdx = args.indexOf("--favicon");
+const faviconArg = faviconIdx >= 0 ? args[faviconIdx + 1] : null;
+const outIdx = args.indexOf("--out");
+const outArg = outIdx >= 0 ? args[outIdx + 1] : null;
+const target = args.find((a) => !a.startsWith("--") && a !== outArg && a !== faviconArg);
+
+if (!target) {
+  console.error(`${C.red}Falta el nombre de la carpeta.${C.reset}`);
+  process.exit(1);
+}
+
+let root = resolve(process.cwd(), target);
+if (!existsSync(root) || !statSync(root).isDirectory()) {
+  console.error(`${C.red}No existe la carpeta:${C.reset} ${root}`);
+  process.exit(1);
+}
+
+/* ---------------------- encontrar la raíz del sitio --------------------- */
+
+/** Un export suele venir envuelto en una o dos carpetas. Baja hasta el index.html. */
+function findSiteRoot(dir, depth = 0) {
+  if (existsSync(join(dir, "index.html"))) return dir;
+  if (depth >= 4) return null;
+  const entries = readdirSync(dir, { withFileTypes: true })
+    .filter((e) => !e.name.startsWith(".") && !JUNK.test(e.name));
+  const dirs = entries.filter((e) => e.isDirectory());
+  if (dirs.length === 1 && entries.length === dirs.length) {
+    return findSiteRoot(join(dir, dirs[0].name), depth + 1);
+  }
+  return null;
+}
+
+const siteRoot = findSiteRoot(root);
+if (!siteRoot) {
+  console.error(`${C.red}No encontré index.html${C.reset} en ${root} ni en una carpeta que la envuelva.`);
+  process.exit(1);
+}
+if (siteRoot !== root) {
+  note(`El sitio vive en ${C.blue}${relative(root, siteRoot)}/${C.reset}; el ZIP se arma desde ahí.`);
+}
+
+/* -------------------------------- porteo -------------------------------- */
+
+if (fix) {
+  const prep = await import("./prepare.mjs");
+  const report = { note, warn, err };
+  console.log(`${C.dim}Adaptando el export…${C.reset}\n`);
+  prep.selfHostFonts(siteRoot, report);
+  prep.wireContacts(siteRoot, report);
+  prep.writeManifest(siteRoot, report);
+}
+
+/* ------------------------------ inventario ------------------------------ */
+
+function walk(dir, base = dir, out = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    const rel = relative(base, full);
+    if (JUNK.test(rel) || entry.name.startsWith(".")) continue;
+    if (entry.isDirectory()) walk(full, base, out);
+    else out.push({ rel, full, size: statSync(full).size });
+  }
+  return out;
+}
+
+const files = walk(siteRoot);
+const totalBytes = files.reduce((n, f) => n + f.size, 0);
+const dropped = files.filter((f) => !ALLOWED.has(extname(f.rel).slice(1).toLowerCase()));
+const htmlFiles = files.filter((f) => /\.html?$/i.test(f.rel));
+
+if (files.length > MAX_FILES) err(`${files.length} archivos, el límite del panel es ${MAX_FILES}.`);
+if (totalBytes > MAX_BYTES) err(`${(totalBytes / 1e6).toFixed(1)}MB, el límite del panel es 100MB.`);
+for (const f of dropped) warn(`Se va a descartar al importar (extensión no permitida).`, f.rel);
+
+/* ------------------------------- revisiones ----------------------------- */
+
+// landing.json configura el chat; el panel lo saca del ZIP y no lo publica.
+const manifestPath = join(siteRoot, "landing.json");
+if (existsSync(manifestPath)) {
+  try {
+    const parsed = JSON.parse(readFileSync(manifestPath, "utf8"));
+    const chat = parsed?.chat;
+    if (!chat || typeof chat !== "object") {
+      warn(`No trae un bloque "chat"; el panel no va a prellenar nada.`, "landing.json");
+    } else {
+      const campos = ["launcherLabel", "welcome", "serviceOptions", "scope", "replacesForm", "theme"]
+        .filter((k) => chat[k] !== undefined);
+      note(`landing.json va a prellenar: ${campos.join(", ") || "(nada)"}.`);
+      if (!chat.scope) {
+        warn(`Sin "scope": el asistente queda sin restricciones de tema.`, "landing.json");
+      }
+      if (!chat.theme) {
+        warn(`Sin "theme": el chat va a salir en gris neutro, no en tu paleta.`, "landing.json");
+      }
+      const desconocidos = Object.keys(chat).filter((k) => ![
+        "launcherLabel", "welcome", "serviceOptions", "scope", "replacesForm", "theme",
+      ].includes(k));
+      if (desconocidos.length) {
+        warn(`El panel ignora estos campos: ${desconocidos.join(", ")}.`, "landing.json");
+      }
+    }
+  } catch (e) {
+    err(`No es JSON válido (${e.message.slice(0, 60)}). El panel lo va a ignorar.`, "landing.json");
+  }
+} else {
+  note("Sin landing.json: la configuración del chat se captura a mano en el panel.");
+}
+
+/* ------------------------------- favicons ------------------------------- */
+
+/** Un logo plausible dentro del propio sitio, para no pedirlo si ya está ahí. */
+function findLogo(dir) {
+  const candidates = [];
+  const walk = (d, depth) => {
+    if (depth > 3) return;
+    for (const entry of readdirSync(d, { withFileTypes: true })) {
+      if (entry.name.startsWith(".")) continue;
+      const full = join(d, entry.name);
+      if (entry.isDirectory()) walk(full, depth + 1);
+      else if (/logo|isotipo|marca|icon/i.test(entry.name) && /\.(png|jpe?g|webp)$/i.test(entry.name)) {
+        candidates.push({ full, size: statSync(full).size });
+      }
+    }
+  };
+  walk(dir, 0);
+  // El archivo más pesado suele ser el de mayor resolución.
+  return candidates.sort((a, b) => b.size - a.size)[0]?.full ?? null;
+}
+
+const FAVICONS = ["favicon.ico", "apple-touch-icon.png"];
+const missingFavicons = FAVICONS.filter((f) => !existsSync(join(siteRoot, f)));
+
+if (missingFavicons.length) {
+  // Solo se busca dentro del sitio: mirar hacia afuera puede tomar cualquier
+  // imagen suelta de la carpeta de arriba y publicarla como marca.
+  const source = faviconArg ? resolve(process.cwd(), faviconArg) : findLogo(siteRoot);
+
+  if (source && existsSync(source)) {
+    try {
+      const script = join(dirname(fileURLToPath(import.meta.url)), "make-favicons");
+      const written = JSON.parse(execFileSync(script, [source, siteRoot], { encoding: "utf8" }).trim());
+      note(`Favicons generados desde ${C.blue}${relative(siteRoot, source) || basename(source)}${C.reset}: ${written.join(", ")}.`);
+    } catch (e) {
+      warn(`No pude generar los favicons (${String(e.message).slice(0, 70)}). Agrégalos a mano.`, "favicon");
+    }
+  } else {
+    warn(`Faltan ${missingFavicons.join(" y ")} y no encontré un logo del cual generarlos. Usa --favicon <imagen>.`, "favicon");
+  }
+}
+
+if (!existsSync(join(siteRoot, "favicon.svg"))) {
+  note("Sin favicon.svg. El .ico alcanza, pero el SVG escala mejor en pantallas grandes.");
+}
+
+/** Los <link> del favicon tienen que estar declarados o el navegador no los usa. */
+for (const file of readdirSync(siteRoot).filter((f) => /\.html?$/i.test(f))) {
+  const path = join(siteRoot, file);
+  let html = readFileSync(path, "utf8");
+  if (/rel="icon"/i.test(html) || !/<\/head>/i.test(html)) continue;
+
+  const links = [
+    '<link rel="icon" href="./favicon.ico" sizes="32x32">',
+    existsSync(join(siteRoot, "favicon.svg")) ? '<link rel="icon" href="./favicon.svg" type="image/svg+xml">' : "",
+    '<link rel="apple-touch-icon" href="./apple-touch-icon.png">',
+  ].filter(Boolean).join("\n");
+
+  writeFileSync(path, html.replace(/<\/head>/i, `${links}\n</head>`), "utf8");
+  note(`Se declararon los <link> del favicon en ${file}.`);
+}
+
+let sawDataSite = false;
+let sawForm = false;
+
+for (const file of htmlFiles) {
+  const html = readFileSync(file.full, "utf8");
+  const at = (index) => `${file.rel}:${html.slice(0, index).split("\n").length}`;
+
+  if (/data-site(-href|-attr)?=/.test(html)) sawDataSite = true;
+
+  // Contactos escritos a mano: dejan de actualizarse desde el panel.
+  for (const re of [
+    /mailto:[^"'\s>]+/g,
+    /tel:\+?[\d()\s-]{7,}/g,
+    /(?:https?:\/\/)?wa\.me\/\d+/g,
+    /https?:\/\/(?:www\.)?(instagram|facebook|linkedin|tiktok|youtube|threads|x)\.com\/[^"'\s>]+/g,
+  ]) {
+    for (const m of html.matchAll(re)) {
+      warn(`Contacto escrito a mano (${m[0].slice(0, 48)}). Usa data-site-href para que lo controle el panel.`, at(m.index));
+    }
+  }
+
+  // Recursos traídos de fuera: la plataforma no los sirve y pueden desaparecer.
+  for (const m of html.matchAll(/<(?:link|script|img)[^>]*(?:href|src)="(https?:\/\/[^"]+)"/g)) {
+    warn(`Recurso externo (${new URL(m[1]).host}). Descárgalo a assets/.`, at(m.index));
+  }
+
+  for (const m of html.matchAll(/<form\b[^>]*>/g)) {
+    sawForm = true;
+    const tag = m[0];
+    if (!/data-site-form/.test(tag)) {
+      err(`<form> sin data-site-form: sus envíos no llegan al panel.`, at(m.index));
+    }
+    const action = /action="([^"]*)"/.exec(tag)?.[1] ?? "";
+    if (action && !action.startsWith("/api/f/")) {
+      err(`El formulario apunta a ${action}. Debe dejarse vacío o ir a /api/f/submit.`, at(m.index));
+    }
+  }
+
+  if (/(formspree|netlify|getform|web3forms|formsubmit)/i.test(html)) {
+    err(`Usa un servicio de formularios externo. La plataforma ya recibe los envíos.`, file.rel);
+  }
+
+  for (const m of html.matchAll(/(?:href|src)="\/(?!\/)[^"]*"/g)) {
+    note(`Ruta absoluta en ${at(m.index)}: sirve en la plataforma, pero no al abrir el archivo local.`);
+  }
+
+  if (file.rel === "index.html") {
+    if (!/<meta[^>]+viewport/i.test(html)) err(`Falta el meta viewport.`, file.rel);
+    if (!/<title>/i.test(html)) err(`Falta el <title>.`, file.rel);
+    if (!/<meta[^>]+name="description"/i.test(html)) warn(`Falta la meta description.`, file.rel);
+    if (!/og:image/i.test(html)) warn(`Falta og:image, no va a tener vista previa al compartirse.`, file.rel);
+    if (!/rel="icon"/i.test(html)) warn(`El <head> no declara el favicon.`, file.rel);
+  }
+}
+
+if (!sawDataSite) {
+  warn(`Ninguna página usa data-site: los datos del panel no van a aparecer en ningún lado.`, "contrato");
+}
+if (!sawForm) note(`No hay formularios. Si el sitio usa el chat de cotización, está bien.`);
+
+/* -------------------------------- reporte ------------------------------- */
+
+const line = (color, tag, item) =>
+  console.log(`  ${color}${tag}${C.reset} ${item.where ? `${C.dim}${item.where}${C.reset}  ` : ""}${item.msg}`);
+
+console.log(`\n${C.bold}${basename(siteRoot)}${C.reset} ${C.dim}·${C.reset} ${files.length} archivos ${C.dim}·${C.reset} ${(totalBytes / 1024).toFixed(0)} KB\n`);
+
+if (errors.length) {
+  console.log(`${C.red}${C.bold}Errores${C.reset} ${C.dim}(bloquean la subida)${C.reset}`);
+  errors.forEach((e) => line(C.red, "✕", e));
+  console.log();
+}
+if (warnings.length) {
+  console.log(`${C.yellow}${C.bold}Avisos${C.reset} ${C.dim}(el ZIP se arma igual)${C.reset}`);
+  warnings.forEach((w) => line(C.yellow, "!", w));
+  console.log();
+}
+if (notes.length) {
+  console.log(`${C.dim}Notas${C.reset}`);
+  notes.forEach((n) => console.log(`  ${C.dim}·${C.reset} ${n}`));
+  console.log();
+}
+if (!errors.length && !warnings.length) {
+  console.log(`${C.green}Cumple el contrato completo.${C.reset}\n`);
+}
+
+if (errors.length && !force) {
+  console.log(`${C.red}No armé el ZIP.${C.reset} Corrige lo de arriba, o usa ${C.bold}--force${C.reset} si sabes lo que ignoras.\n`);
+  process.exit(1);
+}
+
+/* --------------------------------- zip ---------------------------------- */
+
+const out = resolve(process.cwd(), outArg ?? `${root}.zip`);
+try {
+  execFileSync("zip", ["-r", "-q", "-X", out, ".", "-x", ".*", "-x", "__MACOSX/*", "-x", "*/.DS_Store"], {
+    cwd: siteRoot,
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+} catch {
+  console.error(`${C.red}Falló el zip.${C.reset} ¿Está instalado el comando "zip"?`);
+  process.exit(1);
+}
+
+const zipped = statSync(out).size;
+console.log(`${C.green}${C.bold}Listo${C.reset} ${out} ${C.dim}(${(zipped / 1024).toFixed(0)} KB)${C.reset}`);
+console.log(`${C.dim}Súbelo en admin.hiratalabs.com → el sitio → Publicación.${C.reset}\n`);

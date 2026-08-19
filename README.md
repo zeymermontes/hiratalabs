@@ -190,6 +190,18 @@ vez de pagarse otra vez. El consumo se ve por sitio y en la vista global.
 | `blocked` | Aviso de sitio no disponible | 403 |
 | `draft` | Aviso de mantenimiento, hasta la primera publicación | 503 |
 
+## Preparar una landing para subirla
+
+```bash
+./tools/create-landing <carpeta-del-export> --fix --out cliente.zip
+```
+
+`--fix` adapta un export de Claude Design al contrato: autoaloja las fuentes que
+venían de un CDN, conecta los datos de contacto a `data-site`, marca el
+formulario, genera los favicons que falten y escribe `landing.json` derivando la
+paleta del chat de las variables `:root` del sitio. Sin `--fix` solo revisa y
+comprime. Ver [`tools/README.md`](tools/README.md).
+
 ## Contrato de las landings
 
 Está documentado en el panel, en **Guía para IA**, con botón de copiar. Resumen:

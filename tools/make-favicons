@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""
+make-favicons <imagen-origen> <carpeta-destino>
+
+Genera el juego completo de favicons a partir de un logo. Lo usa create-landing
+cuando el sitio no trae los suyos, para que no dependa de que alguien se acuerde.
+"""
+import sys, json, pathlib
+
+try:
+    from PIL import Image
+except ImportError:
+    print("Falta Pillow. Instálalo con: pip3 install Pillow", file=sys.stderr)
+    sys.exit(2)
+
+INK = (12, 10, 38, 255)
+
+
+def square(img, side, pad=0.08, bg=None):
+    """Centra la marca en un lienzo cuadrado, con margen para que respire."""
+    inner = int(side * (1 - pad * 2))
+    scale = min(inner / img.width, inner / img.height)
+    w, h = max(1, int(img.width * scale)), max(1, int(img.height * scale))
+    art = img.resize((w, h), Image.LANCZOS)
+    canvas = Image.new("RGBA", (side, side), bg or (0, 0, 0, 0))
+    canvas.paste(art, ((side - w) // 2, (side - h) // 2), art)
+    return canvas
+
+
+def main():
+    if len(sys.argv) < 3:
+        print("uso: make-favicons <imagen> <carpeta>", file=sys.stderr)
+        sys.exit(1)
+
+    src_path, out_dir = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+    img = Image.open(src_path).convert("RGBA")
+
+    written = []
+    square(img, 256).save(out_dir / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48), (64, 64)])
+    written.append("favicon.ico")
+
+    # iOS y Android no manejan bien la transparencia: fondo sólido.
+    for name, size in [("apple-touch-icon.png", 180),
+                       ("android-chrome-192x192.png", 192),
+                       ("android-chrome-512x512.png", 512)]:
+        square(img, size, 0.14, INK).save(out_dir / name)
+        written.append(name)
+
+    manifest = out_dir / "site.webmanifest"
+    data = {}
+    if manifest.exists():
+        try:
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+        except Exception:
+            data = {}
+    data["icons"] = [
+        {"src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png"},
+        {"src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png"},
+    ]
+    data.setdefault("display", "standalone")
+    manifest.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    written.append("site.webmanifest")
+
+    print(json.dumps(written))
+
+
+if __name__ == "__main__":
+    main()
