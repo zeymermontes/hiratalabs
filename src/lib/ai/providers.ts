@@ -196,3 +196,62 @@ export async function askForQuestions(
       return askGoogle(apiKey, resolved, req);
   }
 }
+
+/* ------------------------- model discovery ------------------------------ */
+
+async function getJson(url: string, headers: Record<string, string>) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const res = await fetch(url, { headers, signal: controller.signal, cache: "no-store" });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`${res.status}: ${text.slice(0, 200)}`);
+    return JSON.parse(text) as Record<string, unknown>;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Asks the provider which models the account can actually use, so nobody has to
+ * type an id from memory and discover it was wrong at call time.
+ */
+export async function listModels(provider: ProviderId, apiKey: string): Promise<string[]> {
+  const pick = (data: Record<string, unknown>, key: string, field: string) => {
+    const list = data[key];
+    if (!Array.isArray(list)) return [];
+    return list
+      .map((item) => (item && typeof item === "object" ? String((item as Record<string, unknown>)[field] ?? "") : ""))
+      .filter(Boolean);
+  };
+
+  switch (provider) {
+    case "anthropic": {
+      const data = await getJson("https://api.anthropic.com/v1/models?limit=100", {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      });
+      return pick(data, "data", "id");
+    }
+    case "openai": {
+      const data = await getJson("https://api.openai.com/v1/models", { Authorization: `Bearer ${apiKey}` });
+      return pick(data, "data", "id");
+    }
+    case "groq": {
+      const data = await getJson("https://api.groq.com/openai/v1/models", { Authorization: `Bearer ${apiKey}` });
+      return pick(data, "data", "id");
+    }
+    case "deepseek": {
+      const data = await getJson("https://api.deepseek.com/models", { Authorization: `Bearer ${apiKey}` });
+      return pick(data, "data", "id");
+    }
+    case "google": {
+      const data = await getJson(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}&pageSize=200`,
+        {},
+      );
+      // Google returns "models/gemini-…"; the generate call takes the bare id.
+      return pick(data, "models", "name").map((n) => n.replace(/^models\//, ""));
+    }
+  }
+}

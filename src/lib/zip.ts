@@ -25,15 +25,28 @@ function normalize(raw: string): string | null {
 }
 
 /**
- * Many exports wrap everything in a single folder ("my-landing/index.html").
- * If every entry shares one root segment and index.html is not at the top,
- * strip it so the site serves from "/".
+ * Exports often wrap everything in a folder ("my-landing/index.html"), and some
+ * tools nest that twice ("export/my-landing/index.html"). Peel off shared roots
+ * until index.html is at the top, so either shape imports cleanly.
  */
-function findStrippableRoot(paths: string[]): string | null {
-  if (paths.length === 0) return null;
-  if (paths.some((p) => !p.includes("/"))) return null;
-  const first = paths[0].split("/")[0];
-  return paths.every((p) => p.split("/")[0] === first) ? first : null;
+const MAX_ROOTS_TO_STRIP = 4;
+
+function stripSharedRoots(paths: string[]): string[] {
+  const roots: string[] = [];
+  let current = paths;
+
+  for (let depth = 0; depth < MAX_ROOTS_TO_STRIP; depth++) {
+    if (current.some((p) => p === "index.html")) break;
+    if (current.some((p) => !p.includes("/"))) break;
+
+    const first = current[0].split("/")[0];
+    if (!current.every((p) => p.split("/")[0] === first)) break;
+
+    roots.push(first);
+    current = current.map((p) => p.slice(first.length + 1));
+  }
+
+  return roots;
 }
 
 export function extractZip(buffer: Uint8Array, maxFiles: number): ExtractResult {
@@ -72,9 +85,10 @@ export function extractZip(buffer: Uint8Array, maxFiles: number): ExtractResult 
     throw new Error(`The ZIP has ${entries.length} files, over the ${maxFiles} limit.`);
   }
 
-  const root = findStrippableRoot(entries.map((e) => e.path));
+  const roots = stripSharedRoots(entries.map((e) => e.path));
+  const prefix = roots.length ? `${roots.join("/")}/` : "";
   const files: ExtractedFile[] = entries.map((e) => {
-    const path = root ? e.path.slice(root.length + 1) : e.path;
+    const path = prefix ? e.path.slice(prefix.length) : e.path;
     return { path, bytes: e.bytes, contentType: contentTypeFor(path) };
   });
 
@@ -87,7 +101,7 @@ export function extractZip(buffer: Uint8Array, maxFiles: number): ExtractResult 
   return {
     files,
     skipped,
-    strippedRoot: root,
+    strippedRoot: roots.length ? roots.join("/") : null,
     totalBytes: files.reduce((n, f) => n + f.bytes.byteLength, 0),
   };
 }

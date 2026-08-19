@@ -199,11 +199,12 @@ export function ChatForm({
 
           <Field
             label="A qué se dedica el negocio"
-            hint="Es el contexto que recibe la IA para que las preguntas de seguimiento tengan sentido. Entre más concreto, mejores preguntas."
+            hint="Texto libre, o el bloque JSON de la Guía para IA con negocio, servicios, fuera_de_alcance y no_responder. El JSON acota de qué puede preguntar el asistente."
           >
             <textarea
-              name="businessContext" rows={4} defaultValue={values.businessContext}
-              placeholder="Estudio de desarrollo de software. Hacemos plataformas a la medida, integraciones y apps. Proyectos desde 3 meses."
+              name="businessContext" rows={8} defaultValue={values.businessContext}
+              placeholder={'{\n  "negocio": "Estudio de software a la medida en CDMX.",\n  "servicios": ["Plataformas web", "Apps móviles"],\n  "fuera_de_alcance": ["Hosting", "Diseño de marca"],\n  "no_responder": ["temas ajenos al proyecto"],\n  "idioma": "es"\n}'}
+
               className="input"
             />
           </Field>

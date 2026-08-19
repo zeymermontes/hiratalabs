@@ -13,7 +13,8 @@ export function LoginForm({ initialError }: { initialError: string | null }) {
     <main className="grid min-h-screen place-items-center px-6">
       <div className="card w-full max-w-sm p-8">
         <div className="mb-6">
-          <div className="mb-4 h-8 w-8 rounded-lg bg-neutral-900" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-mark.svg" alt="Hirata Labs" width={38} height={35} className="mb-4 h-9 w-auto" />
           <h1 className="text-lg font-semibold tracking-tight">Panel de landings</h1>
           <p className="mt-1 text-sm text-neutral-500">Te enviamos un enlace de acceso por correo.</p>
         </div>

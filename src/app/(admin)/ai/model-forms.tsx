@@ -2,7 +2,8 @@
 
 import { useActionState, useState, useTransition } from "react";
 import {
-  addAiModel, deleteAiModel, setDefaultAiModel, updateAiModelPrice, type ActionState,
+  addAiModel, deleteAiModel, listProviderModels, setDefaultAiModel, updateAiModelPrice,
+  type ActionState,
 } from "../actions";
 import { Field } from "@/components/ui";
 
@@ -14,32 +15,109 @@ export const PROVIDER_LABELS: Record<string, string> = {
   deepseek: "DeepSeek",
 };
 
+/**
+ * Anthropic publishes its list prices, so they can be prefilled. Every other
+ * provider's price has to be typed in — inventing one would quietly bill wrong.
+ */
+const ANTHROPIC_PRICES: Record<string, [number, number]> = {
+  "claude-fable-5": [10, 50],
+  "claude-mythos-5": [10, 50],
+  "claude-opus-5": [5, 25],
+  "claude-opus-4-8": [5, 25],
+  "claude-opus-4-7": [5, 25],
+  "claude-opus-4-6": [5, 25],
+  "claude-sonnet-5": [3, 15],
+  "claude-sonnet-4-6": [3, 15],
+  "claude-haiku-4-5": [1, 5],
+};
+
 export function AddModelForm() {
   const [state, action, pending] = useActionState<ActionState, FormData>(addAiModel, {});
   const [provider, setProvider] = useState("anthropic");
+  const [available, setAvailable] = useState<string[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, startLoading] = useTransition();
+  const [model, setModel] = useState("");
+  const [prices, setPrices] = useState({ input: "0", output: "0" });
+
+  function chooseModel(value: string) {
+    setModel(value);
+    const known = provider === "anthropic" ? ANTHROPIC_PRICES[value] : undefined;
+    if (known) setPrices({ input: String(known[0]), output: String(known[1]) });
+  }
+
+  function load() {
+    setLoadError(null);
+    startLoading(async () => {
+      const res = await listProviderModels(provider as "anthropic");
+      if (res.error) { setLoadError(res.error); setAvailable(null); }
+      else setAvailable(res.models ?? []);
+    });
+  }
 
   return (
     <form action={action} className="card space-y-4 p-5">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Proveedor">
-          <select name="provider" value={provider} onChange={(e) => setProvider(e.target.value)} className="input">
+          <select
+            name="provider" value={provider} className="input"
+            onChange={(e) => { setProvider(e.target.value); setAvailable(null); setModel(""); setLoadError(null); }}
+          >
             {Object.entries(PROVIDER_LABELS).map(([id, label]) => (
               <option key={id} value={id}>{label}</option>
             ))}
           </select>
         </Field>
-        <Field label="Modelo" hint="El identificador exacto que espera el proveedor.">
-          <input name="model" required placeholder="claude-opus-5" className="input font-mono text-xs" />
+
+        <Field
+          label="Modelo"
+          hint={available ? `${available.length} disponibles en tu cuenta.` : "Trae la lista o escribe el identificador."}
+        >
+          {available ? (
+            <select
+              name="model" required value={model} className="input font-mono text-xs"
+              onChange={(e) => chooseModel(e.target.value)}
+            >
+              <option value="">Elige uno…</option>
+              {available.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          ) : (
+            <input
+              name="model" required value={model} onChange={(e) => chooseModel(e.target.value)}
+              placeholder="claude-opus-5" className="input font-mono text-xs"
+            />
+          )}
         </Field>
+
         <Field label="Precio entrada" hint="USD por 1M de tokens.">
-          <input name="inputPrice" type="number" step="0.01" min="0" defaultValue="0" className="input" />
+          <input
+            name="inputPrice" type="number" step="0.01" min="0"
+            value={prices.input} onChange={(e) => setPrices((p) => ({ ...p, input: e.target.value }))}
+            className="input"
+          />
         </Field>
         <Field label="Precio salida" hint="USD por 1M de tokens.">
-          <input name="outputPrice" type="number" step="0.01" min="0" defaultValue="0" className="input" />
+          <input
+            name="outputPrice" type="number" step="0.01" min="0"
+            value={prices.output} onChange={(e) => setPrices((p) => ({ ...p, output: e.target.value }))}
+            className="input"
+          />
         </Field>
       </div>
 
       <div className="flex flex-wrap items-center gap-4">
+        <button type="button" onClick={load} disabled={loading} className="btn-secondary">
+          {loading ? "Consultando…" : available ? "Actualizar lista" : "Traer modelos del proveedor"}
+        </button>
+        {available ? (
+          <button
+            type="button"
+            onClick={() => { setAvailable(null); setModel(""); }}
+            className="text-xs text-neutral-500 underline-offset-2 hover:underline"
+          >
+            escribirlo a mano
+          </button>
+        ) : null}
         <label className="flex items-center gap-2 text-sm text-neutral-700">
           <input type="checkbox" name="isDefault" className="h-4 w-4 rounded border-neutral-300" />
           Usarlo por defecto para este proveedor
@@ -49,10 +127,12 @@ export function AddModelForm() {
         </button>
         {state.error ? <span className="text-sm text-red-600">{state.error}</span> : null}
         {state.ok ? <span className="text-sm text-emerald-700">{state.message}</span> : null}
+        {loadError ? <span className="text-sm text-red-600">{loadError}</span> : null}
       </div>
       <p className="hint">
-        Los precios son los que usa el panel para calcular cuánto consumió cada sitio. Cópialos de la
-        página de precios de tu proveedor: no se consultan solos.
+        &quot;Traer modelos&quot; le pregunta al proveedor con tu propia llave, así que la lista es la que
+        tu cuenta puede usar de verdad. Los precios sí van a mano —solo los de Anthropic se prellenan— porque
+        ningún proveedor los expone por API y un precio inventado se traduce en un cobro mal hecho.
       </p>
     </form>
   );

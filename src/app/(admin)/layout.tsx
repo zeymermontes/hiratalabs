@@ -18,8 +18,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-6 py-3">
           <Link href="/" className="flex items-center gap-2.5">
-            <span className="h-6 w-6 rounded-md bg-neutral-900" />
-            <span className="text-sm font-semibold tracking-tight">Landings</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-wordmark.svg" alt="Hirata Labs" width={96} height={24} className="h-5 w-auto" />
+            <span className="h-4 w-px bg-neutral-300" aria-hidden="true" />
+            <span className="text-sm font-medium tracking-tight text-neutral-700">Landings</span>
           </Link>
 
           <nav className="flex items-center gap-1">

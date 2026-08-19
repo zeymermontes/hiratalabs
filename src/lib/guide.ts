@@ -351,5 +351,58 @@ Qué significa para tu diseño:
    formulario es la única vía de contacto. Nunca dependas de que el chat exista.
 4. **No pongas un aviso tipo "chatea con nosotros"** apuntando a una esquina: el botón trae su propia
    etiqueta, configurable desde el panel.
+
+### Entrega también las restricciones del chat
+
+Si el sitio va a usar el chat, entrega junto con el ZIP este bloque JSON. Se pega en el panel, en el campo
+**"A qué se dedica el negocio"**, y es lo que mantiene al asistente dentro de su tema: sin él, el chat
+queda abierto a que alguien lo use como asistente personal y queme tokens del cliente.
+
+\`\`\`json
+{
+  "negocio": "Estudio de desarrollo de software en CDMX. Plataformas a la medida, integraciones y apps móviles. Proyectos desde 3 meses.",
+  "servicios": [
+    "Plataformas web a la medida",
+    "Apps móviles iOS y Android",
+    "Integraciones con ERP y CRM"
+  ],
+  "fuera_de_alcance": [
+    "Hosting y soporte de infraestructura",
+    "Diseño de marca",
+    "Campañas de publicidad"
+  ],
+  "no_responder": [
+    "preguntas generales de programación",
+    "traducciones o redacción de textos",
+    "tareas escolares",
+    "cualquier tema ajeno al proyecto que describe la persona"
+  ],
+  "idioma": "es"
+}
+\`\`\`
+
+Qué hace cada campo:
+
+| Campo | Para qué sirve |
+|---|---|
+| \`negocio\` | Una o dos frases sobre a qué se dedica. Es el contexto que aterriza las preguntas. |
+| \`servicios\` | Lo que el negocio sí vende. El asistente pregunta solo alrededor de esto. |
+| \`fuera_de_alcance\` | Lo que no vende. Evita preguntas que ilusionan al cliente con algo que no existe. |
+| \`no_responder\` | Temas ante los cuales el asistente devuelve cero preguntas y sigue con el guion fijo. |
+| \`idioma\` | Código del idioma en que deben salir las preguntas. |
+
+Reglas de este bloque:
+
+- **Es JSON, no texto libre.** Si no parsea, el panel lo trata como descripción simple y pierdes las
+  restricciones. Valídalo antes de entregarlo.
+- Máximo 12 elementos por lista, 160 caracteres cada uno. Lo que sobre se recorta.
+- \`negocio\` se recorta a 900 caracteres.
+- **Sé específico en \`fuera_de_alcance\`.** Es lo que evita que el chat levante expectativas de servicios
+  que el cliente no da.
+
+Lo que este bloque **no** puede hacer, porque se aplica del lado del servidor y ninguna configuración lo
+puede aflojar: el asistente nunca responde preguntas, nunca escribe código ni textos, nunca cambia de rol
+y nunca devuelve otra cosa que preguntas de seguimiento. Lo que escribe el visitante se trata como dato,
+no como instrucción. Este bloque solo puede **estrechar** el alcance, nunca ampliarlo.
 `;
 }

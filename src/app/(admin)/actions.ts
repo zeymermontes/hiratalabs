@@ -537,3 +537,28 @@ export async function deleteAiModel(id: string) {
   revalidatePath("/ai");
   revalidatePath("/usage");
 }
+
+/**
+ * Reads the model list straight from the provider using the stored platform key.
+ * Beats typing ids from memory: what comes back is what the account can call.
+ */
+export async function listProviderModels(
+  provider: "anthropic" | "openai" | "google" | "groq" | "deepseek",
+): Promise<{ models?: string[]; error?: string }> {
+  await requireAdmin();
+  const { aiKeys } = await import("@/lib/db/schema");
+  const { decryptSecret } = await import("@/lib/crypto");
+  const { listModels } = await import("@/lib/ai/providers");
+
+  const rows = await db.select().from(aiKeys).where(eq(aiKeys.provider, provider));
+  const chosen = rows.find((r) => r.isDefault) ?? rows[0];
+  if (!chosen) return { error: "Agrega primero una llave de ese proveedor." };
+
+  try {
+    const models = await listModels(provider, decryptSecret(chosen.secret));
+    if (models.length === 0) return { error: "El proveedor no devolvió modelos." };
+    return { models: models.sort() };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message.slice(0, 200) : "No se pudo consultar." };
+  }
+}

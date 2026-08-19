@@ -170,8 +170,16 @@ no eligen modelo propio usan ese.
 y el costo estimado con esos precios, con desglose por modelo y exportación a CSV para
 facturar. Los precios se capturan a mano — no se consultan solos.
 
-Límites: 6 llamadas por IP cada 10 minutos, más un tope mensual por sitio configurable
-(500 por defecto). El consumo se ve por sitio y en la vista global.
+Contra el abuso: la descripción del visitante se acota a 1200 caracteres y se manda
+delimitada como dato, nunca como instrucción; la salida está limitada por esquema a
+un máximo de 2 preguntas de 240 caracteres, así que no sirve como canal de respuestas
+libres. Las reglas de rechazo viven en el prompt de sistema —la configuración de un
+sitio solo puede estrechar el alcance, nunca ampliarlo—, y el campo "a qué se dedica
+el negocio" acepta el bloque JSON documentado en la Guía para IA para acotar temas.
+
+Límites: 6 llamadas por IP cada 10 minutos, 10 por IP y sitio al día, y un tope mensual
+por sitio (500 por defecto). Las descripciones repetidas se responden desde memoria en
+vez de pagarse otra vez. El consumo se ve por sitio y en la vista global.
 
 ## Estados de un sitio
 
