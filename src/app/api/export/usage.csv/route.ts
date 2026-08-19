@@ -4,6 +4,7 @@ import { costOf, fromMicros } from "@/lib/ai/pricing";
 import { getAdminUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { aiModels, aiUsage, sites } from "@/lib/db/schema";
+import { monthRange } from "@/lib/reports";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,10 +22,9 @@ export async function GET(req: Request) {
   const match = /^(\d{4})-(\d{2})$/.exec(month);
   if (!match) return new NextResponse("Bad month", { status: 400 });
 
-  const y = Number(match[1]);
-  const m = Number(match[2]);
-  const from = new Date(Date.UTC(y, m - 1, 1));
-  const to = new Date(Date.UTC(m === 12 ? y + 1 : y, m === 12 ? 0 : m, 1));
+  // El mismo rango que la pantalla: si aquí se cortara en medianoche UTC, el
+  // CSV y el panel darían totales distintos para el mismo mes.
+  const { from, to } = monthRange(month);
 
   const [rows, prices] = await Promise.all([
     db

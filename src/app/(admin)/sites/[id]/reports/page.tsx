@@ -1,11 +1,12 @@
-import { and, eq, gte } from "drizzle-orm";
+import { and, eq, gte, lt } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { aiModels, aiUsage, siteVersions, sites, submissions } from "@/lib/db/schema";
 import { formatUsd } from "@/lib/ai/pricing";
-import { lastMonths, monthKey, findPrice, rowCost, totalsByModel, REPORT_TIMEZONE } from "@/lib/reports";
+import { lastMonths, monthKey, monthOptions, monthRange, findPrice, rowCost, totalsByModel, REPORT_TIMEZONE } from "@/lib/reports";
 import { Empty, StatusPill } from "@/components/ui";
+import { MonthPicker } from "@/components/month-picker";
 import { MonthlyBars, type Bar } from "./monthly-bars";
 
 export const dynamic = "force-dynamic";
@@ -13,20 +14,34 @@ export const dynamic = "force-dynamic";
 const TIMEZONE = REPORT_TIMEZONE;
 const MONTHS_SHOWN = 6;
 
-export default async function ReportsPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ReportsPage({
+  params, searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ month?: string }>;
+}) {
   const { id } = await params;
   const [site] = await db.select().from(sites).where(eq(sites.id, id));
   if (!site) notFound();
 
-  const months = lastMonths(MONTHS_SHOWN);
-  const since = new Date();
-  since.setUTCMonth(since.getUTCMonth() - MONTHS_SHOWN);
-  since.setUTCDate(1);
-  since.setUTCHours(0, 0, 0, 0);
+  // El mes elegido manda; si viene basura en la query se cae al más reciente.
+  const opciones = monthOptions();
+  const { month } = await searchParams;
+  const selected = opciones.some((m) => m.value === month) ? month! : opciones[0].value;
+
+  // Día 15 para que el corrimiento de zona no mueva el mes.
+  const [sy, sm] = selected.split("-").map(Number);
+  const anchor = new Date(Date.UTC(sy, sm - 1, 15));
+
+  const months = lastMonths(MONTHS_SHOWN, anchor);
+  // Los cortes son medianoche en CDMX, no en UTC: si no, las filas de las
+  // últimas seis horas del mes caerían del lado equivocado frente a monthKey.
+  const since = monthRange(months[0].key).from;
+  const until = monthRange(selected).to;
 
   const [usage, msgs, prices, versions] = await Promise.all([
-    db.select().from(aiUsage).where(and(eq(aiUsage.siteId, id), gte(aiUsage.createdAt, since))),
-    db.select().from(submissions).where(and(eq(submissions.siteId, id), gte(submissions.createdAt, since))),
+    db.select().from(aiUsage).where(and(eq(aiUsage.siteId, id), gte(aiUsage.createdAt, since), lt(aiUsage.createdAt, until))),
+    db.select().from(submissions).where(and(eq(submissions.siteId, id), gte(submissions.createdAt, since), lt(submissions.createdAt, until))),
     db.select().from(aiModels),
     db.select().from(siteVersions).where(eq(siteVersions.siteId, id)),
   ]);
@@ -35,7 +50,7 @@ export default async function ReportsPage({ params }: { params: Promise<{ id: st
   const priceOf = (provider: string, model: string | null) => findPrice(prices, provider, model);
   const costOfRow = (row: (typeof usage)[number]) => rowCost(row, prices);
 
-  const thisMonth = months[months.length - 1].key;
+  const thisMonth = selected;
   const inMonth = <T extends { createdAt: Date }>(rows: T[], key: string) =>
     rows.filter((r) => monthKey(r.createdAt) === key);
 
@@ -81,7 +96,7 @@ export default async function ReportsPage({ params }: { params: Promise<{ id: st
   const monthLabel = months[months.length - 1].long;
 
   const tiles = [
-    { label: "Costo de IA", value: missingPrice ? "—" : formatUsd(totals.cost), hint: "este mes" },
+    { label: "Costo de IA", value: missingPrice ? "—" : formatUsd(totals.cost), hint: "en el mes elegido" },
     { label: "Llamadas al modelo", value: nf.format(totals.calls), hint: failedCalls ? `${failedCalls} con error` : "sin errores" },
     { label: "Tokens", value: nf.format(totals.tokens), hint: "entrada + salida" },
     { label: "Mensajes recibidos", value: nf.format(totals.messages), hint: `${byForm.size} formulario${byForm.size === 1 ? "" : "s"}` },
@@ -89,10 +104,13 @@ export default async function ReportsPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="space-y-8">
-      <p className="text-sm text-neutral-500">
-        {monthLabel} · el costo sale de los precios capturados en{" "}
-        <Link href="/ai" className="underline underline-offset-2">Llaves de IA</Link>.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-neutral-500">
+          El costo sale de los precios capturados en{" "}
+          <Link href="/ai" className="underline underline-offset-2">Llaves de IA</Link>.
+        </p>
+        <MonthPicker months={opciones} selected={selected} basePath={`/sites/${id}/reports`} />
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map((t) => (
@@ -114,7 +132,7 @@ export default async function ReportsPage({ params }: { params: Promise<{ id: st
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="card p-5">
           <h2 className="text-sm font-semibold text-neutral-900">Costo de IA por mes</h2>
-          <p className="hint mb-4">Últimos {MONTHS_SHOWN} meses, en dólares.</p>
+          <p className="hint mb-4">{MONTHS_SHOWN} meses hasta el elegido, en dólares.</p>
           <MonthlyBars bars={costBars} empty="Sin consumo registrado todavía." />
         </section>
 
@@ -128,7 +146,7 @@ export default async function ReportsPage({ params }: { params: Promise<{ id: st
       <section>
         <h2 className="mb-3 text-sm font-semibold text-neutral-900">Consumo por modelo · {monthLabel}</h2>
         {byModel.length === 0 ? (
-          <Empty title="Sin llamadas este mes" body="Cuando alguien use el chat de cotización, el detalle aparece aquí." />
+          <Empty title="Sin llamadas en este mes" body="Cuando alguien use el chat de cotización, el detalle aparece aquí." />
         ) : (
           <div className="card overflow-x-auto">
             <table className="w-full text-sm">
@@ -164,7 +182,7 @@ export default async function ReportsPage({ params }: { params: Promise<{ id: st
         <section>
           <h2 className="mb-3 text-sm font-semibold text-neutral-900">Mensajes por formulario</h2>
           {byForm.size === 0 ? (
-            <p className="hint">Sin mensajes este mes.</p>
+            <p className="hint">Sin mensajes en este mes.</p>
           ) : (
             <div className="card divide-y divide-neutral-100">
               {Array.from(byForm.entries()).sort((a, b) => b[1] - a[1]).map(([name, count]) => (

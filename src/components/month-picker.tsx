@@ -2,7 +2,17 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-export function MonthPicker({ months, selected }: { months: { value: string; label: string }[]; selected: string }) {
+/**
+ * Cambia el mes conservando el resto de la query. `basePath` existe porque el
+ * mismo selector se usa en Consumo global y en los reportes de cada sitio.
+ */
+export function MonthPicker({
+  months, selected, basePath,
+}: {
+  months: { value: string; label: string }[];
+  selected: string;
+  basePath: string;
+}) {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -14,7 +24,7 @@ export function MonthPicker({ months, selected }: { months: { value: string; lab
       onChange={(e) => {
         const next = new URLSearchParams(params.toString());
         next.set("month", e.target.value);
-        router.push(`/usage?${next.toString()}`);
+        router.push(`${basePath}?${next.toString()}`);
       }}
       aria-label="Mes"
     >

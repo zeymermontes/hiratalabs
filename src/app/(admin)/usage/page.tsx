@@ -4,33 +4,10 @@ import { db } from "@/lib/db";
 import { aiModels, aiUsage, sites } from "@/lib/db/schema";
 import { costOf, formatUsd, fromMicros } from "@/lib/ai/pricing";
 import { Empty, PageHeader } from "@/components/ui";
-import { MonthPicker } from "./month-picker";
+import { MonthPicker } from "@/components/month-picker";
+import { monthOptions, monthRange } from "@/lib/reports";
 
 export const dynamic = "force-dynamic";
-
-/** Months are counted in Mexico City, the same clock the emails use. */
-const TIMEZONE = "America/Mexico_City";
-
-function monthRange(value: string) {
-  const [y, m] = value.split("-").map(Number);
-  const from = new Date(Date.UTC(y, m - 1, 1));
-  const to = new Date(Date.UTC(m === 12 ? y + 1 : y, m === 12 ? 0 : m, 1));
-  return { from, to };
-}
-
-function monthOptions(count = 12) {
-  const out: { value: string; label: string }[] = [];
-  const now = new Date();
-  for (let i = 0; i < count; i++) {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
-    const value = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-    out.push({
-      value,
-      label: new Intl.DateTimeFormat("es-MX", { timeZone: TIMEZONE, month: "long", year: "numeric" }).format(d),
-    });
-  }
-  return out;
-}
 
 export default async function UsagePage({
   searchParams,
@@ -119,7 +96,7 @@ export default async function UsagePage({
         subtitle="Tokens y costo por sitio, para poder cobrarlos. El costo sale de los precios que capturaste en Llaves de IA."
         actions={
           <div className="flex items-center gap-2">
-            <MonthPicker months={months} selected={selected} />
+            <MonthPicker months={months} selected={selected} basePath="/usage" />
             <a href={`/api/export/usage.csv?month=${selected}`} className="btn-secondary">CSV</a>
           </div>
         }

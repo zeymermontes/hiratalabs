@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/reports";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { submissions } from "@/lib/db/schema";
@@ -50,7 +51,7 @@ export default async function SubmissionsPage({ params }: { params: Promise<{ id
                   </p>
                 </div>
                 <span className="text-xs text-neutral-400">
-                  {new Date(s.createdAt).toLocaleString("es-MX")}
+                  {formatDateTime(s.createdAt)}
                 </span>
               </summary>
 

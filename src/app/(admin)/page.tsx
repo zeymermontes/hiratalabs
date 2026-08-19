@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/reports";
 import { desc, eq, sql } from "drizzle-orm";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -59,7 +60,7 @@ export default async function DashboardPage() {
               </div>
               <div className="text-right text-xs text-neutral-400">
                 <div>{s.submissionCount} mensaje{s.submissionCount === 1 ? "" : "s"}</div>
-                <div className="mt-0.5">{new Date(s.updatedAt).toLocaleDateString("es-MX")}</div>
+                <div className="mt-0.5">{formatDate(s.updatedAt)}</div>
               </div>
             </Link>
           ))}

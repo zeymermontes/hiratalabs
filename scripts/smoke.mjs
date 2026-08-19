@@ -22,7 +22,7 @@ const { parseScope, buildPrompt, SYSTEM_PROMPT, MAX_DESCRIPTION_CHARS } =
   await import("../src/lib/ai/prompt.ts");
 const { listModels } = await import("../src/lib/ai/providers.ts");
 const { parseManifest, MANIFEST_FILENAME } = await import("../src/lib/landing-manifest.ts");
-const { monthKey, lastMonths, findPrice, rowCost, totalsByModel } =
+const { monthKey, lastMonths, monthOptions, monthRange, formatDateTime, findPrice, rowCost, totalsByModel } =
   await import("../src/lib/reports.ts");
 
 let passed = 0;
@@ -501,6 +501,52 @@ test("lists the last months ending in the current one", () => {
   assert.equal(months[5].key, "2026-08");
   assert.equal(months[0].key, "2026-03");
   assert.ok(months.every((m) => m.short && m.long));
+});
+
+test("the month range cuts at local midnight, not UTC", () => {
+  const { from, to } = monthRange("2026-08");
+  // CDMX va 6 horas detrás: la medianoche local del 1 de agosto son las 06:00 UTC.
+  assert.equal(from.toISOString(), "2026-08-01T06:00:00.000Z");
+  assert.equal(to.toISOString(), "2026-09-01T06:00:00.000Z");
+});
+
+test("the range agrees with monthKey at the boundary", () => {
+  // Una fila de las 23:30 del 31 de julio en CDMX es julio para monthKey; el
+  // rango de agosto no debe recogerla, o la pantalla se contradice a sí misma.
+  const justoAntes = new Date("2026-08-01T05:30:00.000Z");
+  assert.equal(monthKey(justoAntes), "2026-07");
+  assert.ok(justoAntes < monthRange("2026-08").from);
+  assert.ok(justoAntes < monthRange("2026-07").to);
+
+  const justoDespues = new Date("2026-08-01T06:30:00.000Z");
+  assert.equal(monthKey(justoDespues), "2026-08");
+  assert.ok(justoDespues >= monthRange("2026-08").from);
+});
+
+test("December rolls into January", () => {
+  assert.equal(monthRange("2026-12").to.toISOString(), "2027-01-01T06:00:00.000Z");
+});
+
+test("dates render on the Mexico City clock, not the server's", () => {
+  // El servidor corre en UTC: sin fijar la zona, esto saldría un día adelante.
+  const texto = formatDateTime("2026-08-19T02:00:00.000Z");
+  assert.match(texto, /18 ago 2026/, `en UTC diría 19 de agosto; salió: ${texto}`);
+  assert.match(texto, /8:00/);
+});
+
+test("offers selectable months from newest to oldest", () => {
+  const opts = monthOptions(4, new Date(Date.UTC(2026, 7, 19)));
+  assert.deepEqual(opts.map((o) => o.value), ["2026-08", "2026-07", "2026-06", "2026-05"]);
+  assert.match(opts[0].label, /agosto/);
+});
+
+test("the six-month window ends at the chosen month, not at today", () => {
+  // Elegir mayo tiene que mostrar dic–may, no arrastrar los meses posteriores.
+  const anchor = new Date(Date.UTC(2026, 4, 15));
+  const win = lastMonths(6, anchor);
+  assert.equal(win.length, 6);
+  assert.equal(win[win.length - 1].key, "2026-05");
+  assert.equal(win[0].key, "2025-12");
 });
 
 test("crosses the year boundary backwards", () => {

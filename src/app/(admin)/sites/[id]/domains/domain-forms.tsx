@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDateTime } from "@/lib/reports";
+
 import { useActionState, useTransition } from "react";
 import {
   addDomain, forceVerifyDomain, refreshDomain, removeDomain, setPrimaryDomain, type ActionState,
@@ -54,7 +56,7 @@ export function DomainRow({
           </div>
           {domain.lastCheckedAt ? (
             <p className="mt-0.5 text-xs text-neutral-400">
-              Revisado {new Date(domain.lastCheckedAt).toLocaleString("es-MX")}
+              Revisado {formatDateTime(domain.lastCheckedAt)}
             </p>
           ) : null}
         </div>

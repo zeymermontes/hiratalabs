@@ -30,6 +30,71 @@ export function lastMonths(count: number, now = new Date()): MonthSlot[] {
   return out;
 }
 
+/**
+ * Desfase de la zona del reporte, en minutos, para un instante dado. Se calcula
+ * con Intl en vez de asumir -6: si algún día vuelve el horario de verano, esto
+ * sigue siendo correcto.
+ */
+function tzOffsetMinutes(date: Date, timeZone = REPORT_TIMEZONE): number {
+  const partes = new Intl.DateTimeFormat("en-US", {
+    timeZone, hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  }).formatToParts(date);
+  const v = (t: string) => Number(partes.find((p) => p.type === t)!.value);
+  // hour puede venir como 24 a medianoche en algunos entornos.
+  const comoUTC = Date.UTC(v("year"), v("month") - 1, v("day"), v("hour") % 24, v("minute"), v("second"));
+  return (comoUTC - date.getTime()) / 60000;
+}
+
+/**
+ * Instante UTC de la medianoche local del primer día del mes "YYYY-MM".
+ * Sin esto los rangos cortaban en medianoche UTC —las 6pm del día anterior en
+ * CDMX— y las filas de esa franja caían en el mes equivocado respecto a monthKey.
+ */
+export function monthStart(value: string): Date {
+  const [y, m] = value.split("-").map(Number);
+  const tentativo = new Date(Date.UTC(y, m - 1, 1));
+  return new Date(tentativo.getTime() - tzOffsetMinutes(tentativo) * 60000);
+}
+
+/** Rango [desde, hasta) del mes, en instantes UTC pero con cortes locales. */
+export function monthRange(value: string): { from: Date; to: Date } {
+  const [y, m] = value.split("-").map(Number);
+  const siguiente = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+  return { from: monthStart(value), to: monthStart(siguiente) };
+}
+
+/** Fecha y hora en la zona del reporte. El servidor corre en UTC. */
+export function formatDateTime(date: Date | string): string {
+  return new Intl.DateTimeFormat("es-MX", {
+    timeZone: REPORT_TIMEZONE, dateStyle: "medium", timeStyle: "short",
+  }).format(new Date(date));
+}
+
+/** Solo la fecha, en la zona del reporte. */
+export function formatDate(date: Date | string): string {
+  return new Intl.DateTimeFormat("es-MX", {
+    timeZone: REPORT_TIMEZONE, dateStyle: "medium",
+  }).format(new Date(date));
+}
+
+/** Meses seleccionables, del más reciente hacia atrás. */
+export function monthOptions(count = 12, now = new Date()): { value: string; label: string }[] {
+  const out: { value: string; label: string }[] = [];
+  for (let i = 0; i < count; i++) {
+    // Día 15, no día 1: con día 1 el valor se arma en UTC y la etiqueta en la
+    // zona del reporte (UTC-6), así que el 1 de agosto se rotulaba "julio".
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 15));
+    out.push({
+      value: `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`,
+      label: new Intl.DateTimeFormat("es-MX", { timeZone: REPORT_TIMEZONE, month: "long", year: "numeric" })
+        .format(d),
+    });
+  }
+  return out;
+}
+
 export type PriceRow = { provider: string; model: string | null; inputPriceMicros: number; outputPriceMicros: number };
 export type UsageRow = {
   provider: string; model: string | null; ok: boolean;

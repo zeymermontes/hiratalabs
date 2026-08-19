@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/reports";
 import { desc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -45,11 +46,11 @@ export default async function SitePublishPage({ params }: { params: Promise<{ id
               <div key={v.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-neutral-900">
-                    {v.label || `Versión del ${new Date(v.createdAt).toLocaleString("es-MX")}`}
+                    {v.label || `Versión del ${formatDateTime(v.createdAt)}`}
                   </p>
                   <p className="mt-0.5 text-xs text-neutral-500">
                     {v.fileCount} archivos · {bytes(v.totalBytes)} · {v.uploadedBy ?? "—"} ·{" "}
-                    {new Date(v.createdAt).toLocaleString("es-MX")}
+                    {formatDateTime(v.createdAt)}
                   </p>
                 </div>
                 <VersionActions siteId={site.id} versionId={v.id} isActive={site.activeVersionId === v.id} />
