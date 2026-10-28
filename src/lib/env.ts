@@ -37,6 +37,10 @@ export const env = {
   get bucket() {
     return opt("SUPABASE_STORAGE_BUCKET", "landings");
   },
+  /** Bucket PÚBLICO para fotos de productos, banners y logos de las tiendas. */
+  get publicBucket() {
+    return opt("SUPABASE_PUBLIC_BUCKET", "store-assets");
+  },
   get databaseUrl() {
     return req("DATABASE_URL");
   },

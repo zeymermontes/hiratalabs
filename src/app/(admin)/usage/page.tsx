@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth";
 import { and, eq, gte, lt, sql } from "drizzle-orm";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -14,6 +15,7 @@ export default async function UsagePage({
 }: {
   searchParams: Promise<{ month?: string }>;
 }) {
+  await requireAdmin();
   const months = monthOptions();
   const { month } = await searchParams;
   const selected = months.some((m) => m.value === month) ? month! : months[0].value;

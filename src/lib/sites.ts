@@ -2,12 +2,15 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { domains, siteChat, siteVersions, sites, type Site, type SiteVersion } from "@/lib/db/schema";
 import { APEX_SLUG, siteHost, slugFromHost } from "@/lib/host";
+import { enabledModuleKeys } from "@/lib/modules";
 import { publicSiteConfig, resolveSettings, type PublicSiteConfig } from "@/lib/settings";
 
 export type ResolvedSite = {
   site: Site;
   version: SiteVersion | null;
   config: PublicSiteConfig;
+  /** Módulos activos en el sitio, ya resueltos (registro + catálogo + sitio). */
+  modules: Set<string>;
 };
 
 type CacheEntry = { value: ResolvedSite | null; expires: number };
@@ -44,9 +47,10 @@ async function lookup(host: string): Promise<ResolvedSite | null> {
   }
 
   const settings = await resolveSettings(site.id, site.name);
+  const modules = await enabledModuleKeys(site);
 
   const [chatRow] = await db.select().from(siteChat).where(eq(siteChat.siteId, site.id));
-  const chat = chatRow?.enabled
+  const chat = chatRow?.enabled && modules.has("chat_ai")
     ? {
         enabled: true,
         replacesForm: chatRow.replacesForm,
@@ -60,9 +64,9 @@ async function lookup(host: string): Promise<ResolvedSite | null> {
   const poweredBy = shouldShowPoweredBy(site.showPoweredBy, slug);
 
   return {
-    site, version,
+    site, version, modules,
     config: publicSiteConfig(site, settings, host, {
-      poweredBy, chat, whatsappFab: site.showWhatsappFab,
+      poweredBy, chat, whatsappFab: site.showWhatsappFab && modules.has("whatsapp_fab"),
     }),
   };
 }

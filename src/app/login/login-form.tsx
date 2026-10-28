@@ -15,7 +15,7 @@ export function LoginForm({ initialError }: { initialError: string | null }) {
         <div className="mb-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-mark.svg" alt="Hirata Labs" width={38} height={35} className="mb-4 h-9 w-auto" />
-          <h1 className="text-lg font-semibold tracking-tight">Panel de landings</h1>
+          <h1 className="font-display text-3xl">Entrar al panel</h1>
           <p className="mt-1 text-sm text-neutral-500">Te enviamos un enlace de acceso por correo.</p>
         </div>
 
@@ -38,6 +38,9 @@ export function LoginForm({ initialError }: { initialError: string | null }) {
             <button type="submit" disabled={pending} className="btn-primary w-full">
               {pending ? "Enviando…" : "Enviar enlace"}
             </button>
+            <p className="hint text-center">
+              ¿Aún no tienes tienda? <a href="/start" className="font-semibold text-purple hover:underline">Créala en minutos</a>
+            </p>
           </form>
         )}
       </div>

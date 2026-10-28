@@ -13,6 +13,17 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const siteStatus = pgEnum("site_status", ["live", "maintenance", "blocked", "draft"]);
+export const siteKind = pgEnum("site_kind", ["landing", "store"]);
+
+/** Marca de una tienda: la plantilla elegida y sus tokens. Vive en sites.theme. */
+export type SiteTheme = {
+  template: string;
+  colors?: Partial<Record<"primary" | "primaryForeground" | "accent" | "background" | "foreground" | "muted", string>>;
+  fonts?: { display?: string; body?: string };
+  radius?: "none" | "sm" | "md" | "lg" | "full";
+  logoUrl?: string;
+  announcement?: string;
+};
 export const domainStatus = pgEnum("domain_status", ["pending", "verified", "failed"]);
 export const emailStatus = pgEnum("email_status", ["pending", "sent", "failed", "skipped"]);
 
@@ -45,6 +56,10 @@ export const sites = pgTable("sites", {
   poweredByAutoOff: boolean("powered_by_auto_off").notNull().default(false),
   /** Floating WhatsApp button. The runtime skips it when no number is set. */
   showWhatsappFab: boolean("show_whatsapp_fab").notNull().default(false),
+  /** landing = ZIP estático (lo de siempre); store = storefront de la plataforma. */
+  kind: siteKind("kind").notNull().default("landing"),
+  /** Plantilla y tokens de marca del storefront (solo kind = store). */
+  theme: jsonb("theme").$type<SiteTheme>(),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -235,6 +250,8 @@ export const aiUsage = pgTable("ai_usage", {
   error: text("error"),
   inputTokens: integer("input_tokens"),
   outputTokens: integer("output_tokens"),
+  /** Qué función hizo la llamada: null = chat de cotización, 'assist' = asistente de IA. */
+  feature: text("feature"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   siteIdx: index("ai_usage_site_created_idx").on(t.siteId, t.createdAt),
@@ -243,3 +260,111 @@ export const aiUsage = pgTable("ai_usage", {
 export type AiKey = typeof aiKeys.$inferSelect;
 export type AiModel = typeof aiModels.$inferSelect;
 export type SiteChat = typeof siteChat.$inferSelect;
+
+/* ------------------------- Plataforma: tiendas y módulos ------------------------- */
+
+/**
+ * Qué clase de sitio es. "landing" es el comportamiento de siempre (ZIP estático
+ * servido tal cual); "store" se renderiza con el storefront de la plataforma.
+ */
+export const memberRole = pgEnum("member_role", ["owner", "staff"]);
+export const moduleTier = pgEnum("module_tier", ["free", "paid"]);
+export const moduleRequestStatus = pgEnum("module_request_status", ["pending", "approved", "rejected"]);
+
+/**
+ * Quién puede entrar al panel de un sitio sin ser super admin. El owner
+ * administra su tienda; el staff opera (pedidos, productos) sin tocar facturación
+ * ni módulos de pago.
+ */
+export const siteMembers = pgTable("site_members", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  /** Se llena en el primer login con magic link. */
+  userId: uuid("user_id"),
+  name: text("name"),
+  role: memberRole("role").notNull().default("owner"),
+  invitedBy: text("invited_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  uniq: uniqueIndex("site_members_site_email_idx").on(t.siteId, t.email),
+  emailIdx: index("site_members_email_idx").on(t.email),
+}));
+
+/**
+ * Ajustes comerciales por módulo que el super admin cambia desde el panel. El
+ * nombre, la descripción y el comportamiento viven en código (src/modules/registry.ts);
+ * aquí solo lo que se vende: si está disponible, si es gratis o extra, el precio
+ * que se muestra y si el dueño puede prenderlo solo.
+ */
+export const modulesCatalog = pgTable("modules_catalog", {
+  key: text("key").primaryKey(),
+  /** false = no se ofrece a nadie (aunque exista en código). */
+  available: boolean("available").notNull().default(true),
+  tier: moduleTier("tier"),
+  priceLabel: text("price_label"),
+  ownerCanToggle: boolean("owner_can_toggle"),
+  notes: text("notes"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Estado de un módulo en un sitio. Sin fila = el default del registro. */
+export const siteModules = pgTable("site_modules", {
+  siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  moduleKey: text("module_key").notNull(),
+  enabled: boolean("enabled").notNull().default(true),
+  /** Configuración propia del módulo (lo define cada módulo). */
+  config: jsonb("config").$type<Record<string, unknown>>().default({}).notNull(),
+  enabledBy: text("enabled_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  pk: uniqueIndex("site_modules_pk").on(t.siteId, t.moduleKey),
+}));
+
+/** Un dueño pide un extra de pago; el super admin lo aprueba y queda activo. */
+export const moduleRequests = pgTable("module_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  moduleKey: text("module_key").notNull(),
+  requestedBy: text("requested_by").notNull(),
+  message: text("message"),
+  status: moduleRequestStatus("status").notNull().default("pending"),
+  resolvedBy: text("resolved_by"),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  siteIdx: index("module_requests_site_idx").on(t.siteId, t.status),
+}));
+
+export type SiteMember = typeof siteMembers.$inferSelect;
+export type ModuleCatalogRow = typeof modulesCatalog.$inferSelect;
+export type SiteModuleRow = typeof siteModules.$inferSelect;
+export type ModuleRequest = typeof moduleRequests.$inferSelect;
+
+/**
+ * Registro público (/start): se guarda la intención y el sitio se crea en el
+ * primer login, cuando el correo ya está verificado. Así nadie aparta un
+ * subdominio con un correo ajeno.
+ */
+export const signupStatus = pgEnum("signup_status", ["pending", "done", "expired"]);
+export const signups = pgTable("signups", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull(),
+  storeName: text("store_name").notNull(),
+  slug: text("slug").notNull(),
+  kind: siteKind("kind").notNull().default("store"),
+  template: text("template").notNull().default("lumen"),
+  /** Giro del negocio, para que la IA proponga textos. */
+  business: text("business"),
+  status: signupStatus("status").notNull().default("pending"),
+  siteId: uuid("site_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  emailIdx: index("signups_email_idx").on(t.email, t.status),
+}));
+export type Signup = typeof signups.$inferSelect;
+
+/* --------------------- Módulos: cada uno exporta su schema --------------------- */
+export * from "@/modules/catalog/schema";
+export * from "@/modules/orders/schema";
+export * from "@/modules/mcp/schema";

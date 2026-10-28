@@ -1,59 +1,40 @@
-import Link from "next/link";
-import { requireAdmin } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { signOut } from "@/app/login/actions";
+import { AdminNav, type NavItem } from "@/components/admin-nav";
 
-const NAV = [
-  { href: "/", label: "Sitios" },
-  { href: "/ai", label: "Llaves de IA" },
-  { href: "/usage", label: "Consumo" },
-  { href: "/guide", label: "Guía para IA" },
+const PLATFORM_NAV: NavItem[] = [
+  { href: "/", label: "Sitios", icon: "sites" },
+  { href: "/modules", label: "Módulos", icon: "modules" },
+  { href: "/requests", label: "Solicitudes", icon: "requests" },
+  { href: "/ai", label: "Llaves de IA", icon: "ai" },
+  { href: "/mcp", label: "Conexiones MCP", icon: "mcp" },
+  { href: "/usage", label: "Consumo", icon: "usage" },
+  { href: "/guide", label: "Guía para IA", icon: "guide" },
+];
+
+const MEMBER_NAV: NavItem[] = [
+  { href: "/", label: "Mis sitios", icon: "sites" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const user = await requireAdmin();
+  const user = await requireUser();
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-6 py-3">
-          <Link href="/" className="flex items-center gap-2.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-wordmark.svg" alt="Hirata Labs" width={96} height={24} className="h-5 w-auto" />
-            <span className="h-4 w-px bg-neutral-300" aria-hidden="true" />
-            <span className="text-sm font-medium tracking-tight text-neutral-700">Landings</span>
-          </Link>
-
-          <nav className="flex items-center gap-1">
-            {NAV.map((n) => (
-              <Link
-                key={n.href}
-                href={n.href}
-                className="rounded-lg px-2.5 py-1.5 text-sm text-neutral-600 transition hover:bg-neutral-100 hover:text-neutral-900"
-              >
-                {n.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-xs text-neutral-400 sm:inline">{env.rootDomain}</span>
-            <span className="text-xs text-neutral-500">{user.email}</span>
-            <form
-              action={async () => {
-                "use server";
-                await signOut();
-              }}
-            >
-              <button className="text-xs text-neutral-400 underline-offset-2 hover:text-neutral-700 hover:underline">
-                Salir
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+    <div className="min-h-screen lg:flex">
+      <AdminNav
+        items={user.isSuperAdmin ? PLATFORM_NAV : MEMBER_NAV}
+        email={user.email}
+        roleLabel={user.isSuperAdmin ? "super admin" : "equipo"}
+        rootDomain={env.rootDomain}
+        signOut={async () => {
+          "use server";
+          await signOut();
+        }}
+      />
+      <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+        <div className="mx-auto max-w-6xl">{children}</div>
+      </main>
     </div>
   );
 }

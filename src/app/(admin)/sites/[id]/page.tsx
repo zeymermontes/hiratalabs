@@ -8,6 +8,7 @@ import { Empty } from "@/components/ui";
 import { MetaForm } from "./meta-form";
 import { UploadForm } from "./upload-form";
 import { VersionActions } from "./version-actions";
+import { StoreOverview } from "./store-overview";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,8 @@ export default async function SitePublishPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const [site] = await db.select().from(sites).where(eq(sites.id, id));
   if (!site) notFound();
+
+  if (site.kind === "store") return <StoreOverview site={site} />;
 
   const versions = await db
     .select()

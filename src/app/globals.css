@@ -1,7 +1,50 @@
 @import "tailwindcss";
 
+/*
+ * Tokens de marca Hirata Labs (brandbook 2026).
+ * La escala "neutral" se redefine sobre tinta/crema para que todo el panel
+ * tome la paleta sin reescribir cada clase; los acentos viven aparte.
+ */
 @theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Bebas Neue", "Arial Narrow", Impact, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-ink: #0c0a26;
+  --color-cream: #f3f6ea;
+  --color-purple: #6641e0;
+  --color-purple-dark: #4f2fbf;
+  --color-purple-tint: #eee9fc;
+  --color-lime: #b7d546;
+  --color-lime-dark: #3e5a05;
+  --color-lime-tint: #eef5d4;
+  --color-cyan: #00c0ce;
+  --color-cyan-tint: #d7f5f8;
+
+  --color-neutral-50: #f3f6ea;
+  --color-neutral-100: #e9ecdd;
+  --color-neutral-200: #d9dccb;
+  --color-neutral-300: #c9ccbc;
+  --color-neutral-400: #8e9180;
+  --color-neutral-500: #5b5e78;
+  --color-neutral-600: #3a3d55;
+  --color-neutral-700: #22243f;
+  --color-neutral-800: #14122f;
+  --color-neutral-900: #0c0a26;
+
+  --color-emerald-50: #eef5d4;
+  --color-emerald-200: #cfe08a;
+  --color-emerald-700: #3e5a05;
+  --color-amber-50: #fdebd3;
+  --color-amber-200: #f7cf8f;
+  --color-amber-700: #8a4b00;
+  --color-red-50: #fbe3e3;
+  --color-red-200: #f0c4c4;
+  --color-red-600: #d23b3b;
+  --color-red-700: #9b1c1c;
+
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
 }
 
 @utility btn {
@@ -11,8 +54,9 @@
   gap: 0.5rem;
   border-radius: 0.5rem;
   padding: 0.5rem 0.875rem;
+  min-height: 2.5rem;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   transition: all 150ms;
 
   &:disabled {
@@ -21,18 +65,25 @@
   }
 }
 
+@utility font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+}
 
 @layer components {
   .input {
     @apply w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900
-           placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900;
+           placeholder:text-neutral-400 focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/30;
   }
-  .label { @apply mb-1.5 block text-xs font-medium uppercase tracking-wide text-neutral-500; }
-  .btn-primary { @apply btn bg-neutral-900 text-white hover:bg-neutral-700; }
-  .btn-secondary { @apply btn border border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-100; }
+  .label { @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-neutral-500; }
+  .btn-primary { @apply btn bg-purple text-white hover:bg-purple-dark; }
+  .btn-accent { @apply btn bg-lime text-ink hover:bg-[#a8c93a]; }
+  .btn-secondary { @apply btn border border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50; }
   .btn-danger { @apply btn border border-red-200 bg-white text-red-700 hover:bg-red-50; }
   .card { @apply rounded-xl border border-neutral-200 bg-white; }
   .hint { @apply text-xs leading-relaxed text-neutral-500; }
+  .pill { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold; }
+  .kpi { @apply font-display text-4xl leading-none text-neutral-900; }
 }
 
 html, body { height: 100%; }
@@ -40,3 +91,19 @@ body {
   @apply bg-neutral-50 text-neutral-900 antialiased;
   font-family: var(--font-sans);
 }
+
+h1, h2, h3 { text-wrap: balance; }
+
+/* Reduce motion for people who asked for it. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
+/* Entrada en cascada para listas (clase .stagger en el contenedor). */
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.stagger > * { animation: rise 260ms ease-out both; }
+.stagger > *:nth-child(2) { animation-delay: 40ms; }
+.stagger > *:nth-child(3) { animation-delay: 80ms; }
+.stagger > *:nth-child(4) { animation-delay: 120ms; }
+.stagger > *:nth-child(5) { animation-delay: 160ms; }
+.stagger > *:nth-child(n+6) { animation-delay: 200ms; }

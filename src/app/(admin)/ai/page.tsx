@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth";
 import { desc, eq, gte, sql } from "drizzle-orm";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -11,6 +12,7 @@ import { fromMicros } from "@/lib/ai/pricing";
 export const dynamic = "force-dynamic";
 
 export default async function AiKeysPage() {
+  await requireAdmin();
   const monthStart = new Date();
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);

@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth";
 import { desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { siteSettings, sites } from "@/lib/db/schema";
@@ -10,6 +11,7 @@ import { CopyButton } from "./copy-button";
 export const dynamic = "force-dynamic";
 
 export default async function GuidePage() {
+  await requireAdmin();
   const [allCustom, recent] = await Promise.all([
     db.select({ custom: siteSettings.custom }).from(siteSettings),
     db.select({ slug: sites.slug }).from(sites).orderBy(desc(sites.updatedAt)).limit(1),

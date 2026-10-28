@@ -187,6 +187,34 @@ export async function sendSubmissionEmail(
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
+/**
+ * Envío genérico con HTML ya armado (correos de pedidos de las tiendas, que
+ * llevan la marca de la tienda y no la de la plataforma).
+ */
+export async function sendEmail(args: {
+  to: string[];
+  subject: string;
+  html: string;
+  text: string;
+  replyTo?: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const r = resend();
+  if (!r) return { ok: false, error: "RESEND_API_KEY is not configured" };
+  if (args.to.length === 0) return { ok: false, error: "No recipients configured" };
+  const { error } = await r.emails.send({
+    from: env.resendFrom,
+    to: args.to,
+    replyTo: args.replyTo || undefined,
+    subject: args.subject,
+    html: args.html,
+    text: args.text,
+  });
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+/** Paleta del mailer, para que otros correos de la plataforma se vean iguales. */
+export const MAIL_PALETTE = { INK, BONE, LIME, VIOLET, MUTED, LINE, DISPLAY, BODY, MONO };
+
 /** Used by the "send test email" button in the admin. */
 export async function sendTestEmail(to: string[], siteName: string) {
   return sendSubmissionEmail(to, undefined, {
@@ -197,6 +225,34 @@ export async function sendTestEmail(to: string[], siteName: string) {
     fields: {
       Estado: "Si recibes esto, Resend está configurado correctamente.",
       Remitente: env.resendFrom,
+    },
+    submittedAt: new Date(),
+  });
+}
+
+/**
+ * Un dueño pidió un módulo de pago. Se avisa a los super admins (o al BCC de la
+ * plataforma) reutilizando la plantilla de formularios: es el mismo tipo de lead.
+ */
+export async function sendModuleRequestEmail(r: {
+  siteName: string; moduleName: string; requestedBy: string; message?: string;
+}) {
+  const { db } = await import("@/lib/db");
+  const { admins } = await import("@/lib/db/schema");
+  const rows = await db.select({ email: admins.email }).from(admins);
+  const to = rows.map((x) => x.email);
+  if (to.length === 0) return { ok: false, error: "Sin super admins a quien avisar." };
+
+  return sendSubmissionEmail(to, undefined, {
+    siteName: r.siteName,
+    host: env.adminHost,
+    formName: "Solicitud de módulo",
+    subject: `${r.siteName} pide activar: ${r.moduleName}`,
+    fields: {
+      Módulo: r.moduleName,
+      "Pedido por": r.requestedBy,
+      Mensaje: r.message?.trim() || "—",
+      Revisar: `${env.adminUrl}/requests`,
     },
     submittedAt: new Date(),
   });

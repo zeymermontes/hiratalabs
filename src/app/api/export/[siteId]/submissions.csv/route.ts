@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { getAdminUser } from "@/lib/auth";
+import { accessFor, getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sites, submissions } from "@/lib/db/schema";
 
@@ -13,9 +13,10 @@ function cell(v: unknown) {
 }
 
 export async function GET(_req: Request, { params }: { params: Promise<{ siteId: string }> }) {
-  if (!(await getAdminUser())) return new NextResponse("Unauthorized", { status: 401 });
-
   const { siteId } = await params;
+  const user = await getSessionUser();
+  if (!user || !accessFor(user, siteId)) return new NextResponse("Unauthorized", { status: 401 });
+
   const [site] = await db.select().from(sites).where(eq(sites.id, siteId));
   if (!site) return new NextResponse("Not found", { status: 404 });
 
