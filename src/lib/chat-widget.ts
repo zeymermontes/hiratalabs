@@ -127,6 +127,10 @@ export const CHAT_RUNTIME = String.raw`
       "  padding: 8px 14px; border-radius: 999px; font-size: 13px;",
       "}",
       ".opts button:hover { background: var(--accent); color: var(--on-accent); }",
+      // La salida de una pregunta opcional no compite con la respuesta: se ve,
+      // pero no invita.
+      ".opts button.ghost { border-color: rgba(0,0,0,.18); color: var(--ink); opacity: .72; }",
+      ".opts button.ghost:hover { background: rgba(0,0,0,.06); color: var(--ink); opacity: 1; }",
       ".bar { display: flex; gap: 8px; padding: 12px; }",
       ".bar input {",
       "  flex: 1; min-width: 0; padding: 11px 13px; border: 1px solid rgba(0,0,0,.16);",
@@ -159,7 +163,7 @@ export const CHAT_RUNTIME = String.raw`
     wrap.innerHTML =
       '<button class="launcher" type="button"><span class="dot"></span><span class="label"></span></button>' +
       '<section class="panel" role="dialog" aria-modal="false" aria-label="Asistente de cotización">' +
-      '  <header class="head"><div><h2></h2><p>Respuesta de un humano por correo</p></div>' +
+      '  <header class="head"><div><h2></h2><p>Te contesta una persona, no un bot</p></div>' +
       '    <button class="close" type="button" aria-label="Cerrar">&times;</button></header>' +
       '  <div class="log" role="log" aria-live="polite"></div>' +
       '  <div class="opts"></div>' +
@@ -240,6 +244,29 @@ export const CHAT_RUNTIME = String.raw`
       pendingText = onAnswer;
       scrollToEnd();
       if (panel.offsetParent !== null) input.focus();
+    }
+
+    /**
+     * Como askText, pero con la salida a la vista. Cuando una pregunta es
+     * opcional hay que mostrarlo con un botón: obligar a adivinar la palabra
+     * "omitir" es casi lo mismo que no dar la opción.
+     */
+    function askTextConSalida(placeholder, salida, onAnswer, onSalida) {
+      askText(placeholder, onAnswer);
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "ghost";
+      b.textContent = salida;
+      b.addEventListener("click", function () {
+        if (state.busy) return;
+        pendingText = null;
+        opts.innerHTML = "";
+        bar.hidden = true;
+        say("me", salida);
+        onSalida();
+      });
+      opts.appendChild(b);
+      scrollToEnd();
     }
 
     bar.addEventListener("submit", function (ev) {
@@ -377,20 +404,28 @@ export const CHAT_RUNTIME = String.raw`
       });
     }
 
+    /**
+     * El WhatsApp se pide siempre y se recomienda de frente: es la diferencia
+     * entre contestar en minutos y una cadena de correos. Pero se pide, no se
+     * exige — un dato obligatorio de más es la razón más común para abandonar
+     * el chat, y el correo ya está capturado.
+     */
     function askPhone() {
-      botSay("¿Y un WhatsApp o teléfono? Puedes escribir \"omitir\" si prefieres solo correo.", function () {
-        askText("+52 …", function (text) {
-          if (/^(omitir|no|ninguno|skip)$/i.test(text.trim())) {
-            state.answers.telefono = "";
-            return finish();
-          }
+      botSay("¿Me compartes tu WhatsApp? Es el más recomendado: por ahí te contestamos mucho más rápido que por correo.", function () {
+        askTextConSalida("+52 …", "Prefiero solo correo", function (text) {
+          if (/^(omitir|no|ninguno|skip|paso)$/i.test(text.trim())) return sinTelefono();
           if (text.replace(/\D/g, "").length < 7) {
             return botSay("Ese número se ve incompleto. ¿Lo intentas otra vez?", askPhone);
           }
           state.answers.telefono = text;
-          finish();
-        });
+          botSay("Perfecto, por ahí te buscamos.", finish);
+        }, sinTelefono);
       });
+    }
+
+    function sinTelefono() {
+      state.answers.telefono = "";
+      botSay("Sin problema, entonces te escribimos al correo.", finish);
     }
 
     function summary() {
@@ -404,7 +439,7 @@ export const CHAT_RUNTIME = String.raw`
       lines.push("Tiempo deseado: " + (state.answers.tiempo || "—"));
       lines.push("Nombre: " + (state.answers.nombre || "—"));
       lines.push("Correo: " + (state.answers.email || "—"));
-      if (state.answers.telefono) lines.push("Teléfono: " + state.answers.telefono);
+      if (state.answers.telefono) lines.push("WhatsApp o teléfono: " + state.answers.telefono);
       return lines.join("\n");
     }
 
@@ -467,7 +502,8 @@ export const CHAT_RUNTIME = String.raw`
         .then(function (res) {
           if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
           if (!res.r.ok || res.j.ok === false) throw new Error("send_failed");
-          botSay("Enviado. Nadie te va a mandar un precio automático: una persona revisa tu caso y te contesta por correo.", function () {
+          var via = state.answers.telefono ? "por WhatsApp o correo" : "por correo";
+          botSay("Enviado. Nadie te va a mandar un precio automático: una persona revisa tu caso y te contesta " + via + ".", function () {
             note.textContent = "Recibido. Puedes cerrar esta ventana.";
             choices(["Empezar de nuevo"], function () { start(); });
           });
