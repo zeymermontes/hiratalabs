@@ -1,5 +1,8 @@
 import { and, eq, sql } from "drizzle-orm";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { env } from "@/lib/env";
+import { normalizeHost } from "@/lib/host";
 import { db } from "@/lib/db";
 import { admins, siteMembers, signups, siteSettings, sites } from "@/lib/db/schema";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -33,6 +36,23 @@ function clean(email: string) {
   return email.trim().toLowerCase();
 }
 
+export type PanelKind = "admin" | "app";
+
+/**
+ * En qué panel estamos según el host. ADMIN_HOST es la consola de plataforma
+ * (solo super admins); cualquier otro host del panel (APP_HOST, Render,
+ * localhost) es el panel de los dueños, donde también entran los super admins.
+ */
+export async function panelKind(): Promise<PanelKind> {
+  try {
+    const h = await headers();
+    const host = normalizeHost(h.get("x-forwarded-host") ?? h.get("host"));
+    return host === env.adminHost ? "admin" : "app";
+  } catch {
+    return "app";
+  }
+}
+
 /**
  * Un correo entra al panel si es super admin o si es miembro de algún sitio.
  * Mientras la tabla admins esté vacía, BOOTSTRAP_ADMIN_EMAIL entra y queda
@@ -42,6 +62,8 @@ export async function isAllowedAdmin(email: string): Promise<boolean> {
   const e = clean(email);
   if (!e) return false;
   if (await isSuperAdminEmail(e)) return true;
+  // La consola de plataforma no admite a nadie más.
+  if ((await panelKind()) === "admin") return false;
   const [m] = await db.select({ id: siteMembers.id }).from(siteMembers).where(eq(siteMembers.email, e)).limit(1);
   if (m) return true;
   // Un registro pendiente de /start también entra: su sitio se crea al llegar.
@@ -105,6 +127,8 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     .where(eq(siteMembers.email, email));
 
   if (!isSuperAdmin && rows.length === 0) return null;
+  // En admin.<root> solo entran super admins, aunque tengan sesión válida.
+  if (!isSuperAdmin && (await panelKind()) === "admin") return null;
 
   // Primer login del miembro: enlazamos el id de Supabase con su invitación.
   if (rows.some((r) => !r.userId)) {

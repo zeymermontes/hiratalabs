@@ -62,7 +62,7 @@ export default async function PlatformMcpPage() {
     <>
       <PageHeader
         title="Conexiones MCP"
-        subtitle={<>Sitios que conectaron su propia IA. Endpoint: <code className="font-mono text-xs">{env.adminUrl.replace(/\/+$/, "")}/api/mcp</code></>}
+        subtitle={<>Sitios que conectaron su propia IA. Endpoint: <code className="font-mono text-xs">{env.appUrl.replace(/\/+$/, "")}/api/mcp</code></>}
       />
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">

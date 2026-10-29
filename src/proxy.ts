@@ -10,6 +10,8 @@ import { NextResponse, type NextRequest } from "next/server";
  * y se recuerda un rato en memoria.
  */
 const ADMIN_HOST = (process.env.ADMIN_HOST ?? "").toLowerCase();
+// Panel de los dueños: mismo app, otro host. Quién entra a cuál lo decide auth.ts.
+const APP_HOST = (process.env.APP_HOST ?? "").toLowerCase();
 // Render's own hostname always reaches the panel, so it stays usable before the
 // custom domain's DNS exists — and as a way back in if that DNS ever breaks.
 const RENDER_HOST = (process.env.RENDER_EXTERNAL_HOSTNAME ?? "").toLowerCase();
@@ -55,6 +57,7 @@ export async function proxy(req: NextRequest) {
   // The apex and www serve the home landing, so the panel lives on its own hosts.
   const isAdmin =
     host === ADMIN_HOST ||
+    (APP_HOST !== "" && host === APP_HOST) ||
     (RENDER_HOST !== "" && host === RENDER_HOST) ||
     host === "localhost" ||
     host === "127.0.0.1";

@@ -34,7 +34,7 @@ export default async function SiteMcpPage({ params }: { params: Promise<{ id: st
       .limit(20),
   ]);
 
-  const mcpUrl = `${env.adminUrl.replace(/\/+$/, "")}/api/mcp`;
+  const mcpUrl = `${env.appUrl.replace(/\/+$/, "")}/api/mcp`;
   const active = tokens.filter((t) => !t.revokedAt);
   const revoked = tokens.filter((t) => t.revokedAt);
 

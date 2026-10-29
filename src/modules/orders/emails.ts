@@ -177,7 +177,7 @@ export async function notifyOrderPaid(siteId: string, orderId: string) {
   await log(orderId, "paid", d.order.email, r);
 
   if (s.recipients.length) {
-    const adminUrl = `${env.adminUrl}/sites/${siteId}/orders/${d.order.id}`;
+    const adminUrl = `${env.appUrl}/sites/${siteId}/orders/${d.order.id}`;
     const who = [d.order.fullName, d.order.email, d.order.phone].filter(Boolean).join(" · ");
     const mHtml = layout(s, {
       title: `Nuevo pedido pagado ${ref}`,
