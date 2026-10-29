@@ -436,6 +436,26 @@ test("chat widget script is syntactically valid", () => {
   new Function(CHAT_RUNTIME);
 });
 
+test("the intake always asks for WhatsApp, and always offers a way out", () => {
+  // Se pide siempre: el paso del teléfono cuelga del correo, sin condición que
+  // lo pueda saltar.
+  assert.match(CHAT_RUNTIME, /state\.answers\.email = text;\s*\n\s*askPhone\(\);/);
+
+  const paso = CHAT_RUNTIME.slice(CHAT_RUNTIME.indexOf("function askPhone()"));
+  const pregunta = paso.slice(0, paso.indexOf("function sinTelefono()"));
+
+  // Y se recomienda: si la pregunta deja de nombrar el WhatsApp o de decir por
+  // qué conviene, volvimos a un campo opcional cualquiera.
+  assert.match(pregunta, /WhatsApp/);
+  assert.match(pregunta, /más rápido/);
+
+  // Recomendado no es obligatorio: la salida tiene que estar a la vista, no
+  // escondida en una palabra que hay que adivinar.
+  assert.match(pregunta, /askTextConSalida\(/);
+  assert.match(pregunta, /sinTelefono\)/);
+  assert.match(CHAT_RUNTIME, /function sinTelefono\(\) \{\s*\n\s*state\.answers\.telefono = "";/);
+});
+
 test("chat script is only injected when the chat is on", () => {
   const off = injectIntoHtml("<head></head>", config);
   assert.ok(!off.includes("__site_chat_runtime__"));

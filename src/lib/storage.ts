@@ -59,3 +59,66 @@ export async function ensureBucket() {
     await sb.storage.createBucket(env.bucket, { public: false, fileSizeLimit: "50MB" });
   }
 }
+
+/* ------------------------------------------------------------------------ */
+/* Imágenes públicas de las tiendas (productos, banners, categorías)         */
+/* ------------------------------------------------------------------------ */
+
+const PUBLIC_IMAGE_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "image/svg+xml": "svg",
+};
+export const MAX_PUBLIC_ASSET_BYTES = 8 * 1024 * 1024;
+
+export class AssetError extends Error {
+  constructor(message: string, public status = 400) { super(message); }
+}
+
+function safeFolder(folder: string) {
+  const f = folder.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+  return f || "uploads";
+}
+
+/**
+ * Sube una imagen al bucket público bajo sites/<siteId>/<folder>/<uuid>.<ext>
+ * y devuelve su URL pública. Valida tipo y tamaño; el llamador ya validó que
+ * el usuario puede tocar ese sitio.
+ */
+export async function uploadPublicAsset(
+  siteId: string, file: File, folder: string,
+): Promise<{ url: string; path: string }> {
+  const ext = PUBLIC_IMAGE_TYPES[file.type];
+  if (!ext) throw new AssetError("Solo se aceptan imágenes JPG, PNG, WEBP, GIF o SVG.", 415);
+  if (file.size === 0) throw new AssetError("El archivo está vacío.");
+  if (file.size > MAX_PUBLIC_ASSET_BYTES) throw new AssetError("La imagen pesa más de 8 MB.", 413);
+
+  const path = `sites/${siteId}/${safeFolder(folder)}/${crypto.randomUUID()}.${ext}`;
+  const sb = supabaseAdmin();
+  const bucket = sb.storage.from(env.publicBucket);
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const { error } = await bucket.upload(path, bytes as unknown as ArrayBuffer, {
+    contentType: file.type,
+    upsert: false,
+    cacheControl: "31536000",
+  });
+  if (error) throw new AssetError(`No se pudo subir la imagen: ${error.message}`, 500);
+
+  const { data } = bucket.getPublicUrl(path);
+  return { url: data.publicUrl, path };
+}
+
+/** Crea el bucket público si no existe (se llama desde la primera subida). */
+export async function ensurePublicBucket() {
+  const sb = supabaseAdmin();
+  const { data } = await sb.storage.getBucket(env.publicBucket);
+  if (!data) {
+    await sb.storage.createBucket(env.publicBucket, {
+      public: true,
+      fileSizeLimit: `${MAX_PUBLIC_ASSET_BYTES}`,
+      allowedMimeTypes: Object.keys(PUBLIC_IMAGE_TYPES),
+    });
+  }
+}

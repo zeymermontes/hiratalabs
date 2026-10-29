@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
   if (!resolved) return reply(req, wantsJson, false, 404, "unknown_site");
   const { site } = resolved;
   if (site.status !== "live") return reply(req, wantsJson, false, 403, "site_unavailable");
+  if (!resolved.modules.has("forms")) return reply(req, wantsJson, false, 403, "forms_disabled");
 
   const perSite = rateLimit(`s:${site.id}`, 120, 3_600_000);
   if (!perSite.ok) return reply(req, wantsJson, false, 429, "rate_limited");

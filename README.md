@@ -101,6 +101,7 @@ GoDaddy no soporta ALIAS/ANAME en el apex, así que el raíz va con un registro 
 | agregar | CNAME | `*` | `<tu-servicio>.onrender.com` |
 | agregar | CNAME | `www` | `<tu-servicio>.onrender.com` |
 | agregar | CNAME | `admin` | `<tu-servicio>.onrender.com` |
+| agregar | CNAME | `app` | `<tu-servicio>.onrender.com` (panel de los dueños de tiendas) |
 | agregar | CNAME | `_acme-challenge` | `<srv-id>.verify.renderdns.com` |
 | agregar | CNAME | `_cf-custom-hostname` | `<srv-id>.hostname.renderdns.com` |
 

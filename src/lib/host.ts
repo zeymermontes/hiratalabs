@@ -11,7 +11,7 @@ export function normalizeHost(raw: string | null | undefined): string {
 }
 
 export function isAdminHost(host: string): boolean {
-  if (host === env.adminHost) return true;
+  if (host === env.adminHost || host === env.appHost) return true;
   // Render's own hostname is always a way into the panel, even before the
   // custom domain resolves.
   const renderHost = (process.env.RENDER_EXTERNAL_HOSTNAME ?? "").toLowerCase();

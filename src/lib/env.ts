@@ -18,6 +18,16 @@ export const env = {
   get adminHost() {
     return req("ADMIN_HOST", `admin.${process.env.ROOT_DOMAIN ?? "hiratalabs.com"}`).toLowerCase();
   },
+  /**
+   * Host del panel de los dueños de tiendas (app.<root>). El panel de plataforma
+   * (ADMIN_HOST) solo admite super admins; este admite a todos los miembros.
+   */
+  get appHost() {
+    return req("APP_HOST", `app.${process.env.ROOT_DOMAIN ?? "hiratalabs.com"}`).toLowerCase();
+  },
+  get appUrl() {
+    return opt("NEXT_PUBLIC_APP_URL", `https://${process.env.APP_HOST ?? `app.${process.env.ROOT_DOMAIN ?? "hiratalabs.com"}`}`);
+  },
   /** Shown in the "powered by" chip on platform subdomains. */
   get platformName() {
     return opt("PLATFORM_NAME", "Hirata Labs");
@@ -36,6 +46,10 @@ export const env = {
   },
   get bucket() {
     return opt("SUPABASE_STORAGE_BUCKET", "landings");
+  },
+  /** Bucket PÚBLICO para fotos de productos, banners y logos de las tiendas. */
+  get publicBucket() {
+    return opt("SUPABASE_PUBLIC_BUCKET", "store-assets");
   },
   get databaseUrl() {
     return req("DATABASE_URL");

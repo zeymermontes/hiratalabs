@@ -225,7 +225,7 @@ Marca el formulario con \`data-site-form\`:
 <form data-site-form="contacto">
   <input name="nombre"   type="text"     required placeholder="Nombre">
   <input name="email"    type="email"    required placeholder="Correo">
-  <input name="telefono" type="tel"               placeholder="Teléfono">
+  <input name="telefono" type="tel"               placeholder="WhatsApp (recomendado)">
   <textarea name="mensaje" required placeholder="¿En qué te ayudamos?"></textarea>
 
   <button type="submit">Enviar</button>
@@ -240,6 +240,10 @@ Reglas:
 - El \`name\` de cada campo puede ser lo que quieras; todos se guardan y se mandan en el correo.
 - Usa \`nombre\`/\`name\`, \`email\`/\`correo\`, \`telefono\`/\`phone\`, \`mensaje\`/\`message\` para los campos
   principales: así el panel los muestra en columnas y el correo sale con *reply-to* al visitante.
+- **Incluye siempre el campo de WhatsApp, y siempre opcional.** Es el canal por el que más rápido se
+  contesta un prospecto, así que se recomienda a la vista —\`placeholder="WhatsApp (recomendado)"\` o
+  una nota debajo del campo— pero sin \`required\`: un dato obligatorio de más es la razón más común
+  para abandonar un formulario. El chat de cotización sigue esta misma regla.
 - Nombres que empiezan con \`_\` están reservados; no los uses.
 - El anti-spam (honeypot y control de tiempo) se inyecta solo. No agregues captcha.
 - Mientras se envía, el formulario tiene \`data-state="sending"\`, luego \`"sent"\` o \`"error"\`.
@@ -262,7 +266,7 @@ Reglas:
 8. ¿La página se ve bien si **todos** los datos de contacto estuvieran vacíos?
 9. ¿Responsive y con \`<meta name="viewport" content="width=device-width, initial-scale=1">\`?
 10. ¿Título, descripción y \`og:image\` (1200×630) puestos?
-11. ¿La esquina inferior derecha está libre y el footer tiene \`padding-bottom\` para el chip? (sección 8)
+11. ¿Las **dos** esquinas de abajo están libres y el footer tiene \`padding-bottom\` para el chip? (sección 8)
 
 ---
 
@@ -303,6 +307,7 @@ Reglas:
       <form data-site-form="contacto">
         <input name="nombre" required placeholder="Nombre">
         <input name="email" type="email" required placeholder="Correo">
+        <input name="telefono" type="tel" placeholder="WhatsApp (recomendado)">
         <textarea name="mensaje" required placeholder="Mensaje"></textarea>
         <button type="submit">Enviar</button>
         <p data-site-form-success hidden>¡Gracias! Te contactamos pronto.</p>
@@ -325,44 +330,53 @@ todo lo demás dentro de \`assets/\`.
 
 ## 8. Espacio reservado para el chat y el chip
 
-Las landings que viven en un subdominio de \`${ctx.rootDomain}\` muestran un chip flotante abajo a la derecha.
-Lo inyecta la plataforma, va aislado en un shadow DOM y no hereda el CSS de la página: **no lo agregues tú ni
-intentes ocultarlo**. Desaparece solo cuando el sitio se sirve desde el dominio propio del cliente.
-
-**Deja libre esta zona:**
+**Las dos esquinas de abajo son de la plataforma.** No pongas nada \`position: fixed\` en ninguna de las dos.
 
 \`\`\`
-                                    ┌──────────────────────┐
-   esquina inferior derecha    →    │  Powered by …        │  ~44 px de alto
-   ~200 × 44 px, más 16 px          └──────────────────────┘
-   de margen al borde                        ↕ 16 px
-   ─────────────────────────────────────────────────────────  borde inferior
+   ┌──────────────────────┐                        ┌────┐
+   │  Powered by …        │                        │ WA │   ~56 px
+   └──────────────────────┘                        └────┘
+   ~200 × 44 px                                  botón de WhatsApp
+   ↕ 16 px al borde                              ↕ 18 px al borde
+   ──────────────────────────────────────────────────────────  borde inferior
+    IZQUIERDA: el chip                          DERECHA: WhatsApp y el chat
 \`\`\`
+
+- **Abajo a la izquierda: el chip "Powered by".** Solo aparece en los subdominios de \`${ctx.rootDomain}\`;
+  desaparece solo cuando el sitio se sirve desde el dominio propio del cliente.
+- **Abajo a la derecha: el botón flotante de WhatsApp y el lanzador del chat.** Los dos se encienden desde el
+  panel, así que pueden aparecer en cualquier momento sin volver a subir el ZIP. Diseña como si estuvieran.
+
+Todo eso lo inyecta la plataforma, va aislado en un shadow DOM y no hereda el CSS de la página: **no lo
+agregues tú ni intentes ocultarlo.**
 
 Reglas concretas:
 
-1. **No pongas nada \`position: fixed\` en la esquina inferior derecha.** Ni botón de WhatsApp, ni widget de
-   chat, ni "volver arriba", ni banner de cookies anclado a esa esquina.
-2. **Si necesitas un botón flotante, ponlo abajo a la izquierda:**
+1. **Nada fijo en las esquinas de abajo.** Ni botón de WhatsApp propio, ni widget de chat, ni "volver arriba",
+   ni banner de cookies anclado a una esquina. Si el diseño pide un botón flotante de WhatsApp, **no lo
+   construyas**: enciéndelo desde el panel y queda bien colocado solo.
+2. **Si necesitas un botón flotante propio**, céntralo o ponlo a media altura, no en una esquina inferior:
    \`\`\`css
-   .fab { position: fixed; left: 20px; bottom: 20px; }
+   .fab { position: fixed; right: 20px; top: 50%; transform: translateY(-50%); }
    \`\`\`
 3. **Dale aire al footer.** En móvil el chip se encima del contenido final si el footer termina pegado al
-   borde. Agrega \`padding-bottom: 72px\` al footer, o \`80px\` si tu footer tiene texto en la última línea:
+   borde. Agrega \`padding-bottom: 80px\` al footer:
    \`\`\`css
-   footer { padding-bottom: 72px; }
+   footer { padding-bottom: 80px; }
    @media (min-width: 768px) { footer { padding-bottom: 48px; } }
    \`\`\`
-4. **Nada crítico en esa esquina**: ni un enlace, ni un dato de contacto, ni parte de una imagen que importe.
+4. **Lo mismo dentro de un modal a pantalla completa.** El chip y el botón siguen encima; si tu modal termina
+   con botones pegados al borde inferior, dales unos 96 px de aire por abajo.
+5. **Nada crítico en esas esquinas**: ni un enlace, ni un dato de contacto, ni parte de una imagen que importe.
 
 Si de todas formas hay algo fijo ahí, el chip lo detecta y se acomoda encima —también cuando el widget carga
 tarde—, pero el resultado se ve mejor si dejas el espacio desde el diseño.
 
-Si por alguna razón la esquina derecha es intocable, puedes moverlo a la izquierda con un atributo en el
-\`<body>\`:
+Si por alguna razón la esquina izquierda es intocable, puedes mandar el chip a la derecha con un atributo en
+el \`<body>\` —pero entonces compite con el WhatsApp y el chat, así que es el último recurso:
 
 \`\`\`html
-<body data-site-badge="left">
+<body data-site-badge="right">
 \`\`\`
 
 ---
@@ -378,8 +392,8 @@ panel, sin volver a subir el ZIP.
 
 Qué significa para tu diseño:
 
-1. **La esquina inferior derecha queda ocupada por dos cosas**: el botón del chat y, encima, el chip
-   "Powered by". Reserva unos 200 × 120 px ahí y manda cualquier botón flotante tuyo a la izquierda.
+1. **La esquina inferior derecha la comparten el lanzador del chat y el botón de WhatsApp**, y el chip
+   "Powered by" va en la izquierda. Ver la sección 8: las dos esquinas de abajo son de la plataforma.
 2. **Si el chat va a reemplazar al formulario**, envuelve la sección del formulario en un contenedor con
    \`data-site-form-section\` para que se oculte el bloque completo —título, texto de apoyo y formulario— y
    no quede un encabezado suelto sobre un hueco:

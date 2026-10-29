@@ -3,7 +3,7 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireSiteAccess, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
   domains, siteFiles, siteSettings, siteVersions, sites,
@@ -194,15 +194,18 @@ export async function createSite(_prev: ActionState, form: FormData): Promise<Ac
   const [taken] = await db.select().from(sites).where(eq(sites.slug, slug));
   if (taken) return { error: `El subdominio "${slug}" ya está en uso.` };
 
-  const [site] = await db.insert(sites).values({ name, slug, status: "draft" }).returning();
+  const kind = String(form.get("kind") ?? "landing") === "store" ? "store" : "landing";
+  const theme = kind === "store" ? { template: "lumen" } : null;
+
+  const [site] = await db.insert(sites).values({ name, slug, kind, theme, status: "draft" }).returning();
   await db.insert(siteSettings).values({ siteId: site.id }).onConflictDoNothing();
   await refreshSite(site.id);
   redirect(`/sites/${site.id}`);
 }
 
 export async function updateSiteMeta(_prev: ActionState, form: FormData): Promise<ActionState> {
-  await requireAdmin();
-  const id = String(form.get("siteId"));
+    const id = String(form.get("siteId"));
+  await requireSiteAccess(id, { manage: true });
   const name = String(form.get("name") ?? "").trim();
   const slug = slugify(String(form.get("slug") ?? ""));
 
@@ -227,7 +230,7 @@ export async function updateSiteMeta(_prev: ActionState, form: FormData): Promis
 }
 
 export async function setSiteStatus(siteId: string, status: "live" | "maintenance" | "blocked" | "draft") {
-  await requireAdmin();
+  await requireSiteAccess(siteId, { manage: true });
   await db.update(sites).set({ status, updatedAt: new Date() }).where(eq(sites.id, siteId));
   await refreshSite(siteId);
 }
@@ -253,8 +256,8 @@ export async function deleteSite(siteId: string) {
 /* ------------------------------ versions -------------------------------- */
 
 export async function uploadVersion(_prev: ActionState, form: FormData): Promise<ActionState> {
-  const admin = await requireAdmin();
-  const siteId = String(form.get("siteId"));
+    const siteId = String(form.get("siteId"));
+  const admin = (await requireSiteAccess(siteId, { manage: true })).user;
   const label = String(form.get("label") ?? "").trim() || null;
   const publish = form.get("publish") === "on";
   const file = form.get("zip");
@@ -324,13 +327,13 @@ export async function uploadVersion(_prev: ActionState, form: FormData): Promise
 }
 
 export async function activateVersion(siteId: string, versionId: string) {
-  await requireAdmin();
+  await requireSiteAccess(siteId, { manage: true });
   await db.update(sites).set({ activeVersionId: versionId, updatedAt: new Date() }).where(eq(sites.id, siteId));
   await refreshSite(siteId);
 }
 
 export async function deleteVersion(siteId: string, versionId: string) {
-  await requireAdmin();
+  await requireSiteAccess(siteId, { manage: true });
   const [site] = await db.select().from(sites).where(eq(sites.id, siteId));
   if (site?.activeVersionId === versionId) return;
 
@@ -368,8 +371,8 @@ function settingsFromForm(form: FormData) {
 }
 
 export async function saveSiteSettings(_prev: ActionState, form: FormData): Promise<ActionState> {
-  await requireAdmin();
-  const siteId = String(form.get("siteId"));
+    const siteId = String(form.get("siteId"));
+  await requireSiteAccess(siteId, { manage: true });
   const values = settingsFromForm(form);
 
   await db.insert(siteSettings).values({ siteId, ...values })
@@ -380,7 +383,7 @@ export async function saveSiteSettings(_prev: ActionState, form: FormData): Prom
 }
 
 export async function sendTestMail(_prev: ActionState, form: FormData): Promise<ActionState> {
-  await requireAdmin();
+  await requireUser();
   const to = parseList(form.get("to"));
   const siteName = String(form.get("siteName") ?? "Hirata Labs");
   if (to.length === 0) return { error: "Escribe al menos un correo destino." };
@@ -394,8 +397,8 @@ export async function sendTestMail(_prev: ActionState, form: FormData): Promise<
 /* ------------------------------- domains -------------------------------- */
 
 export async function addDomain(_prev: ActionState, form: FormData): Promise<ActionState> {
-  await requireAdmin();
-  const siteId = String(form.get("siteId"));
+    const siteId = String(form.get("siteId"));
+  await requireSiteAccess(siteId, { manage: true });
   const hostname = String(form.get("hostname") ?? "")
     .trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/\.$/, "");
 
@@ -444,7 +447,7 @@ async function autoHidePoweredBy(siteId: string) {
 }
 
 export async function refreshDomain(siteId: string, domainId: string) {
-  await requireAdmin();
+  await requireSiteAccess(siteId, { manage: true });
   const [row] = await db.select().from(domains).where(and(eq(domains.id, domainId), eq(domains.siteId, siteId)));
   if (!row) return;
 
@@ -469,7 +472,7 @@ export async function forceVerifyDomain(siteId: string, domainId: string) {
 }
 
 export async function removeDomain(siteId: string, domainId: string) {
-  await requireAdmin();
+  await requireSiteAccess(siteId, { manage: true });
   const [row] = await db.select().from(domains).where(eq(domains.id, domainId));
   if (!row) return;
   if (row.renderDomainId) await deleteCustomDomain(row.renderDomainId);
@@ -479,7 +482,7 @@ export async function removeDomain(siteId: string, domainId: string) {
 }
 
 export async function setPrimaryDomain(siteId: string, domainId: string) {
-  await requireAdmin();
+  await requireSiteAccess(siteId, { manage: true });
   await db.update(domains).set({ isPrimary: false }).where(eq(domains.siteId, siteId));
   await db.update(domains).set({ isPrimary: true }).where(eq(domains.id, domainId));
   await refreshSite(siteId);
@@ -488,7 +491,7 @@ export async function setPrimaryDomain(siteId: string, domainId: string) {
 /* ----------------------------- submissions ------------------------------ */
 
 export async function deleteSubmission(siteId: string, id: string) {
-  await requireAdmin();
+  await requireSiteAccess(siteId);
   const { submissions } = await import("@/lib/db/schema");
   await db.delete(submissions).where(eq(submissions.id, id));
   revalidatePath(`/sites/${siteId}/submissions`);
@@ -541,11 +544,11 @@ export async function setDefaultAiKey(id: string, provider: string) {
 }
 
 export async function saveSiteChat(_prev: ActionState, form: FormData): Promise<ActionState> {
-  await requireAdmin();
-  const { encryptSecret, encryptionConfigured, secretHint } = await import("@/lib/crypto");
+    const { encryptSecret, encryptionConfigured, secretHint } = await import("@/lib/crypto");
   const { aiKeys, siteChat } = await import("@/lib/db/schema");
 
   const siteId = String(form.get("siteId"));
+  await requireSiteAccess(siteId, { manage: true });
   const enabled = form.get("enabled") === "on";
   const keyMode = (String(form.get("keyMode") ?? "platform") === "own" ? "own" : "platform") as "platform" | "own";
   const provider = String(form.get("provider") ?? "anthropic") as "anthropic" | "openai" | "google" | "groq" | "deepseek";

@@ -1,0 +1,17 @@
+
+> hirata-landings@0.1.0 build
+> next build
+
+▲ Next.js 16.3.1 (Turbopack)
+- Environments: .env.local, .env
+  Downloading swc package @next/swc-linux-arm64-gnu... to /sessions/rcw-01cjfzqgf8ys9a2dba3xdrvy/.cache/next-swc
+unhandledRejection TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: Error: getaddrinfo EAI_AGAIN registry.npmjs.org
+      at ignore-listed frames {
+    errno: -3001,
+    code: 'EAI_AGAIN',
+    syscall: 'getaddrinfo',
+    hostname: 'registry.npmjs.org'
+  }
+}

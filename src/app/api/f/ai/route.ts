@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
 
   const resolved = await resolveSiteByHost(host);
   if (!resolved || resolved.site.status !== "live") return skip();
+  if (!resolved.modules.has("chat_ai")) return skip();
   const site = resolved.site;
 
   const [chat] = await db.select().from(siteChat).where(eq(siteChat.siteId, site.id));

@@ -9,10 +9,13 @@ export function StatusPill({ status }: { status: string }) {
     failed: "bg-red-50 text-red-700 ring-red-200",
     sent: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     skipped: "bg-neutral-100 text-neutral-600 ring-neutral-200",
+    approved: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    rejected: "bg-red-50 text-red-700 ring-red-200",
   };
   const label: Record<string, string> = {
     live: "En línea", draft: "Borrador", maintenance: "Mantenimiento", blocked: "Bloqueado",
     pending: "Pendiente", verified: "Verificado", failed: "Falló", sent: "Enviado", skipped: "Sin envío",
+    approved: "Aprobado", rejected: "Rechazado",
   };
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${map[status] ?? map.draft}`}>
@@ -27,7 +30,7 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight text-neutral-900">{title}</h1>
+        <h1 className="font-display text-4xl leading-none text-neutral-900">{title}</h1>
         {subtitle ? <div className="mt-1 text-sm text-neutral-500">{subtitle}</div> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
@@ -52,5 +55,23 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
       {children}
       {hint ? <p className="hint mt-1">{hint}</p> : null}
     </div>
+  );
+}
+
+/** Etiqueta del tipo de sitio. */
+export function KindPill({ kind }: { kind: "landing" | "store" }) {
+  return kind === "store" ? (
+    <span className="pill bg-purple-tint text-purple-dark">Tienda</span>
+  ) : (
+    <span className="pill bg-neutral-100 text-neutral-600">Landing</span>
+  );
+}
+
+/** Etiqueta gratis / extra para módulos. */
+export function TierPill({ tier, priceLabel }: { tier: "free" | "paid"; priceLabel?: string | null }) {
+  return tier === "paid" ? (
+    <span className="pill bg-ink text-lime">{priceLabel || "Extra"}</span>
+  ) : (
+    <span className="pill bg-lime-tint text-lime-dark">Gratis</span>
   );
 }
