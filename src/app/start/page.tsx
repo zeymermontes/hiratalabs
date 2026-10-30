@@ -18,7 +18,7 @@ export default async function StartPage() {
   const open = await signupOpen();
 
   return (
-    <main className="min-h-screen bg-ink text-cream">
+    <main className="min-h-screen overflow-x-hidden bg-ink text-cream">
       <div className="mx-auto flex max-w-5xl flex-col gap-10 px-5 py-10 sm:px-8 lg:py-16">
         <header className="flex flex-wrap items-center justify-between gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -27,7 +27,7 @@ export default async function StartPage() {
         </header>
 
         <div className="grid gap-10 lg:grid-cols-[1fr_420px] lg:items-start">
-          <div className="flex flex-col gap-5">
+          <div className="flex min-w-0 flex-col gap-5">
             <div className="font-mono text-xs text-lime">tienda en línea · lista en minutos</div>
             <h1 className="font-display text-6xl leading-[0.95] sm:text-7xl">
               Tu tienda,<br />con tu marca,<br /><span className="text-lime">hoy mismo.</span>
