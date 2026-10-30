@@ -31,7 +31,7 @@ export function StartForm({ open, rootDomain, templates }: { open: boolean; root
   }
 
   return (
-    <form action={action} className="card p-5 text-ink sm:p-6">
+    <form action={action} className="card min-w-0 p-5 text-ink sm:p-6">
       <input type="hidden" name="template" value={template} />
       <ol className="mb-5 flex gap-2 text-xs font-semibold">
         <li className={`pill ${step === 1 ? "bg-purple text-white" : "bg-lime-tint text-lime-dark"}`}>1 · Tu negocio</li>
@@ -50,10 +50,10 @@ export function StartForm({ open, rootDomain, templates }: { open: boolean; root
           <label className="label" htmlFor="slug">Dirección</label>
           <div className="flex items-stretch overflow-hidden rounded-lg border border-neutral-300 focus-within:border-purple focus-within:ring-2 focus-within:ring-purple/30">
             <input
-              id="slug" name="slug" required value={slug} className="min-w-0 flex-1 bg-white px-3 py-2 font-mono text-sm outline-none"
+              id="slug" name="slug" required value={slug} className="w-0 min-w-0 flex-1 bg-white px-3 py-2 font-mono text-sm outline-none"
               onChange={(e) => { setSlugTouched(true); setSlug(slugify(e.target.value)); }}
             />
-            <span className="flex items-center bg-purple-tint px-3 font-mono text-xs text-purple-dark">.{rootDomain}</span>
+            <span className="flex shrink-0 items-center bg-purple-tint px-2 font-mono text-xs text-purple-dark sm:px-3">.{rootDomain}</span>
           </div>
           <p className="hint mt-1">Después puedes conectar tu propio dominio.</p>
         </div>
