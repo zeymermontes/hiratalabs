@@ -89,8 +89,16 @@ export async function proxy(req: NextRequest) {
   url.pathname = `/${kind === "store" ? "store" : "srv"}/${host}${pathname}`;
   url.search = search;
 
-  const res = NextResponse.rewrite(url);
+  // Vista previa del editor: el token de la URL llega a las páginas como
+  // encabezado (los layouts no leen searchParams). La firma se verifica allá.
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.delete("x-sf-preview");
+  const previewToken = kind === "store" ? req.nextUrl.searchParams.get("__preview") : null;
+  if (previewToken) requestHeaders.set("x-sf-preview", previewToken.slice(0, 200));
+
+  const res = NextResponse.rewrite(url, { request: { headers: requestHeaders } });
   res.headers.set("x-site-host", host);
+  if (previewToken) res.headers.set("Cache-Control", "no-store");
   return res;
 }
 
