@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 /**
@@ -10,6 +10,12 @@ import { useEffect } from "react";
  */
 export function PreviewBridge({ token }: { token: string }) {
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Avisa al editor en qué página está la vista previa, también al navegar dentro de ella.
+  useEffect(() => {
+    window.parent?.postMessage({ type: "sf:ready", path: pathname }, "*");
+  }, [pathname]);
 
   useEffect(() => {
     const keepToken = (e: MouseEvent) => {
@@ -45,7 +51,6 @@ export function PreviewBridge({ token }: { token: string }) {
 
     document.addEventListener("click", keepToken, true);
     window.addEventListener("message", onMessage);
-    window.parent?.postMessage({ type: "sf:ready", path: location.pathname }, "*");
     return () => {
       document.removeEventListener("click", keepToken, true);
       window.removeEventListener("message", onMessage);

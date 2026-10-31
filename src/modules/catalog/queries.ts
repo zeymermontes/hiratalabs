@@ -3,7 +3,7 @@
  * resuelve sin saber de qué tienda es. Se usan desde el storefront y desde el
  * panel; la autorización la hace quien llama (requireSiteAccess o el host).
  */
-import { and, asc, count, desc, eq, ilike, inArray, isNull, lte, gte, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, ilike, inArray, isNull, lte, gte, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   banners, categories, customizationFields, productCategories, products, productVariants,
@@ -20,6 +20,10 @@ export type ListProductsOpts = {
   categorySlug?: string;
   q?: string;
   featured?: boolean;
+  /** Solo productos con precio anterior mayor al actual (en oferta). */
+  onSale?: boolean;
+  /** "newest" = los más recientes primero; sin valor, destacados y orden manual primero. */
+  sort?: "newest";
   limit?: number;
   offset?: number;
 };
@@ -108,6 +112,7 @@ export async function listProducts(siteId: string, opts: ListProductsOpts = {}):
   const where = [eq(products.siteId, siteId)];
   if (opts.status) where.push(eq(products.status, opts.status));
   if (opts.featured !== undefined) where.push(eq(products.featured, opts.featured));
+  if (opts.onSale) where.push(gt(products.compareAtCents, products.priceCents));
   if (opts.q?.trim()) {
     const term = `%${opts.q.trim().replace(/[%_]/g, "")}%`;
     where.push(or(ilike(products.name, term), ilike(products.sku, term), ilike(products.description, term))!);
@@ -128,7 +133,9 @@ export async function listProducts(siteId: string, opts: ListProductsOpts = {}):
   const cond = and(...where);
   const [items, [{ total }]] = await Promise.all([
     db.select().from(products).where(cond)
-      .orderBy(desc(products.featured), asc(products.sortOrder), desc(products.createdAt))
+      .orderBy(...(opts.sort === "newest"
+        ? [desc(products.createdAt)]
+        : [desc(products.featured), asc(products.sortOrder), desc(products.createdAt)]))
       .limit(limit).offset(offset),
     db.select({ total: count() }).from(products).where(cond),
   ]);

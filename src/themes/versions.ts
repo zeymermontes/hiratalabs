@@ -15,9 +15,17 @@ async function versionOf(siteId: string, status: "draft" | "published"): Promise
   return row ?? null;
 }
 
-/** Lo que ve el público: la versión publicada o, si la tienda es anterior al motor, su tema viejo traducido. */
+/**
+ * Lo que ve el público: la versión publicada o, si la tienda es anterior al
+ * motor, su tema viejo traducido. Si la tabla de versiones todavía no existe
+ * (código desplegado antes que la migración 0014), cae al tema viejo en vez
+ * de tumbar la tienda.
+ */
 export async function getPublishedDoc(site: Pick<Site, "id" | "theme">): Promise<ThemeDoc> {
-  const pub = await versionOf(site.id, "published");
+  const pub = await versionOf(site.id, "published").catch((e: Error) => {
+    console.error(`[themes] no se pudo leer la versión publicada: ${e.message}`);
+    return null;
+  });
   if (pub) return normalizeDoc(pub.doc);
   const legacy = await listHomeSections(site.id, { includeInactive: false }).catch(() => []);
   return legacyToDoc(site.theme, legacy);
