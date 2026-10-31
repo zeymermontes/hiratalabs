@@ -1,4 +1,4 @@
-import { sanitizeHtml } from "@/components/storefront/sections";
+import { sanitizeHtml } from "@/components/storefront/sections/sanitize";
 import { str, type SectionProps } from "../../types";
 import { SectionHead } from "./shared";
 
