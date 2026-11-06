@@ -44,6 +44,7 @@ export async function Header({ ctx, section }: SectionProps) {
       account={modules.has("customers")}
       cartCount={cartCount}
       contact={{ phone: config.phone, phoneHref: config.phoneHref, whatsappHref: config.whatsappHref }}
+      logoSize={typeof s.logoSize === "number" ? Math.min(80, Math.max(24, s.logoSize)) : null}
     />
   );
 }

@@ -81,6 +81,7 @@ export const SECTIONS: SectionDef[] = [
       toggle("showSearch", "Mostrar búsqueda", false),
       toggle("showCategories", "Mostrar categorías en el menú", true),
       t("menuLabel", "Texto del botón de menú", { default: "Menú" }),
+      range("logoSize", "Alto del logo", 24, 80, 34, 2, "px"),
     ],
   },
 

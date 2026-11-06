@@ -59,7 +59,8 @@
 .sf-hdr-logo span { overflow: hidden; text-overflow: ellipsis; }
 /* En celular las fuentes anchas (Syne, Archivo) no caben junto a los íconos. */
 @media (max-width: 480px) { .sf-hdr-logo { font-size: min(calc(22px * var(--sf-scale, 1)), 19px); letter-spacing: -.03em; } }
-.sf-hdr-logo img { height: 34px; width: auto; max-width: 160px; object-fit: contain; display: block; }
+.sf-hdr-logo img { height: var(--sf-logo-h, 34px); width: auto; max-width: var(--sf-logo-w, 160px); object-fit: contain; display: block; }
+@media (max-width: 480px) { .sf-hdr-logo img { height: min(var(--sf-logo-h, 34px), 44px); max-width: min(var(--sf-logo-w, 160px), 46vw); } }
 
 .sf-hdr-nav { display: none; }
 @media (min-width: 768px) {
@@ -89,7 +90,7 @@
 .sf-hdr-bar--centered { display: grid; grid-template-columns: 1fr auto 1fr; min-height: 68px; }
 @media (min-width: 1024px) { .sf-hdr-bar--centered { min-height: 96px; } }
 .sf-hdr-bar--centered .sf-hdr-logo { font-size: calc(clamp(24px, 3vw, 40px) * var(--sf-scale, 1)); justify-self: center; max-width: 52vw; }
-.sf-hdr-bar--centered .sf-hdr-logo img { height: clamp(32px, 4vw, 48px); max-width: 220px; }
+.sf-hdr-bar--centered .sf-hdr-logo img { height: var(--sf-logo-h, clamp(32px, 4vw, 48px)); max-width: var(--sf-logo-w, 220px); }
 .sf-hdr-side { display: flex; align-items: center; gap: clamp(14px, 2vw, 28px); min-width: 0; }
 .sf-hdr-side--end { justify-content: flex-end; }
 .sf-hdr-side--end .sf-hdr-actions { margin-left: 0; }
