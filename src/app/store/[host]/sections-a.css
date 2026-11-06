@@ -397,7 +397,7 @@ img.sf-hero-img { animation: sf-a-kenburns 2400ms var(--sf-ease) both; }
 .sf-hero-type-title {
   display: flex; flex-direction: column; margin: .1em 0 0;
   /* Lo más grande posible sin que la palabra más larga se salga del renglón (hasta ~1.2em por letra en fuentes anchas). */
-  font-size: min(calc(clamp(48px, 14vw, 200px) * var(--sf-scale, 1)), calc((min(100vw, 1280px) - 96px) / (var(--sf-type-chars, 6) * 1.2)));
+  font-size: min(calc(clamp(48px, 14vw, 200px) * var(--sf-scale, 1)), calc((min(100vw, 1280px) - 96px) / (var(--sf-type-chars, 6) * var(--sf-display-w, .8) * 1.12)));
   line-height: .86; letter-spacing: -.045em;
   /* Solo parte una palabra si de verdad no cabe en el renglón. */
   overflow-wrap: break-word;

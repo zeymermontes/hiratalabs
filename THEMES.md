@@ -21,7 +21,7 @@ ThemeDoc
 | Biblioteca de secciones: variantes, ajustes, bloques, zonas | `src/themes/sections.ts` |
 | Plantillas (una por archivo) y su índice | `src/themes/templates/` |
 | Validar / completar documentos, temas viejos, variables CSS | `src/themes/resolve.ts` |
-| Fuentes permitidas (con sus ejes reales) | `src/themes/fonts.ts` |
+| Fuentes permitidas (con sus ejes reales y su ancho, que usan los titulares gigantes) | `src/themes/fonts.ts` |
 | Borrador, publicar, versiones, restaurar | `src/themes/versions.ts` (tabla `theme_versions`, migración 0014) |
 | Vista previa firmada del borrador | `src/themes/preview.ts` + `src/proxy.ts` + `PreviewBridge` |
 | Componentes de cada sección | `src/components/storefront/theme/sections/{a,b}/` |

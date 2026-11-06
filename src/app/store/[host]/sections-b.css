@@ -496,9 +496,14 @@
 .sf-ch-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
 .sf-ch-banner .sf-h1 { overflow-wrap: anywhere; }
 
-.sf-ch-big { display: grid; gap: 18px; padding-bottom: 24px; border-bottom: 1px solid var(--sf-border); }
+.sf-ch-big { display: grid; gap: 18px; padding-bottom: 24px; border-bottom: 1px solid var(--sf-border); container-type: inline-size; }
+/* Lo más grande posible sin partir la palabra más larga (+1 letra por el contador). */
 .sf .sf-ch-bigtitle {
-  font-size: calc(clamp(52px, 14vw, 220px) * var(--sf-scale, 1)); line-height: .86; letter-spacing: -.045em; overflow-wrap: anywhere; margin: 0;
+  font-size: min(calc(clamp(52px, 14vw, 220px) * var(--sf-scale, 1)), calc(100cqi / ((var(--sf-type-chars, 8) + 1) * var(--sf-display-w, .8) * 1.12)));
+  line-height: .86; letter-spacing: -.045em; overflow-wrap: break-word; margin: 0;
+}
+@media (min-width: 900px) {
+  .sf .sf-ch-bigtitle { font-size: min(calc(clamp(52px, 14vw, 220px) * var(--sf-scale, 1)), calc((100cqi - 388px) / ((var(--sf-type-chars, 8) + 1) * var(--sf-display-w, .8) * 1.12))); }
 }
 .sf-ch-count { font-family: var(--sf-font-body); font-size: max(13px, .14em); font-weight: 700; letter-spacing: 0; vertical-align: top; position: relative; top: .5em; margin-left: .15em; opacity: .6; }
 .sf-ch-big-meta { display: flex; flex-direction: column; gap: 8px; }

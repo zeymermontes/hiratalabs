@@ -1,5 +1,5 @@
 import type { SiteTheme } from "@/lib/db/schema";
-import { fontParam } from "./fonts";
+import { FONT_BY_NAME, fontParam } from "./fonts";
 import { SECTION_BY_TYPE, SECTIONS, defaultSettings } from "./sections";
 import { DEFAULT_TEMPLATE, TEMPLATE_BY_KEY } from "./templates";
 import {
@@ -234,6 +234,7 @@ export function resolveDoc(doc: ThemeDoc): ResolvedDoc {
     "--sf-heading-weight": WEIGHT[st.headingWeight],
     "--sf-heading-case": st.headingCase === "upper" ? "uppercase" : "none",
     "--sf-max": WIDTH[st.width],
+    "--sf-display-w": String(FONT_BY_NAME[st.fonts.display]?.width ?? 0.75),
   };
   const schemeCss = SCHEME_KEYS.map((k) => {
     const vars = Object.entries(schemeVars(st.schemes[k])).map(([n, v]) => `${n}:${v}`).join(";");

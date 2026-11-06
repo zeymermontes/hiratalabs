@@ -64,7 +64,7 @@ export async function CollectionHeaderSection({ ctx, section, collection: data }
         <div className="sf-wrap">
           <Crumbs data={data} />
           <div className="sf-ch-big">
-            <h1 className="sf-ch-bigtitle">
+            <h1 className="sf-ch-bigtitle" style={{ "--sf-type-chars": Math.max(4, ...title.split(/\s+/).map((w) => w.length)) } as React.CSSProperties}>
               {title}
               <sup className="sf-ch-count">{total}</sup>
             </h1>
