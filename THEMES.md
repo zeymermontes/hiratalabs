@@ -42,7 +42,7 @@ ThemeDoc
 3. `npm run check-themes`: valida secciones, variantes, zonas, bloques, colores,
    fuentes y **contraste** (texto ≥ 4.5, botón ≥ 3). Tiene que salir en 0 errores.
 4. `npm run seed-demos -- <clave>`: crea `demo-<clave>.<dominio>` con catálogo y
-   fotos de Pexels (necesita `PEXELS_API_KEY`).
+   fotos de Pixabay (necesita `PIXABAY_API_KEY`; también acepta `PEXELS_API_KEY`).
 5. Revísala en celular y escritorio (la demo y el editor tienen selector de dispositivo).
 
 Que se sienta única viene de **combinar**: variante de encabezado + variante de
