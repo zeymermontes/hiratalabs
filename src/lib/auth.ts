@@ -1,5 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { env } from "@/lib/env";
 import { normalizeHost } from "@/lib/host";
@@ -30,7 +30,21 @@ export type SiteAccess = {
   role: "owner" | "staff" | null;
   /** owner o super admin: puede cambiar ajustes, módulos y equipo. */
   canManage: boolean;
+  /** Super admin en modo soporte: ve y edita el sitio exactamente como su dueño. */
+  support: boolean;
 };
+
+/** Cookie del modo soporte: guarda el id del único sitio que se está viendo como dueño. */
+export const SUPPORT_COOKIE = "hl_support";
+
+/** Sitio en modo soporte, o null. Solo cuenta para super admins. */
+export async function supportSiteId(): Promise<string | null> {
+  try {
+    return (await cookies()).get(SUPPORT_COOKIE)?.value || null;
+  } catch {
+    return null;
+  }
+}
 
 function clean(email: string) {
   return email.trim().toLowerCase();
@@ -174,7 +188,20 @@ export function accessFor(user: SessionUser, siteId: string): SiteAccess | null 
     isSuperAdmin: user.isSuperAdmin,
     role,
     canManage: user.isSuperAdmin || role === "owner",
+    support: false,
   };
+}
+
+/**
+ * Como accessFor, pero respeta el modo soporte: un super admin que lo activó
+ * para este sitio recibe los permisos de un dueño (sin los extras de
+ * plataforma), para ver y tocar lo mismo que ve el cliente.
+ */
+export async function siteAccessFor(user: SessionUser, siteId: string): Promise<SiteAccess | null> {
+  const access = accessFor(user, siteId);
+  if (!access || !user.isSuperAdmin) return access;
+  if ((await supportSiteId()) !== siteId) return access;
+  return { ...access, isSuperAdmin: false, role: "owner", canManage: true, support: true };
 }
 
 /**
@@ -183,7 +210,7 @@ export function accessFor(user: SessionUser, siteId: string): SiteAccess | null 
  */
 export async function requireSiteAccess(siteId: string, opts: { manage?: boolean } = {}): Promise<SiteAccess> {
   const user = await requireUser();
-  const access = accessFor(user, siteId);
+  const access = await siteAccessFor(user, siteId);
   if (!access) redirect("/");
   if (opts.manage && !access.canManage) redirect(`/sites/${siteId}`);
   return access;
