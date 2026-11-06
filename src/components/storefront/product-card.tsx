@@ -2,9 +2,14 @@ import Link from "next/link";
 import { formatMXN } from "@/lib/storefront";
 import type { Product } from "@/modules/catalog/schema";
 
-/** Tarjeta de producto para rejillas y carruseles. Solo clases sf-*. */
+/**
+ * Tarjeta de producto para rejillas y carruseles. Solo clases sf-*: el estilo
+ * (clásica, sobre la foto, mínima, con borde, polaroid, segunda foto) y el
+ * efecto al pasar el cursor los decide el tema con data-cards / data-hover.
+ */
 export function ProductCard({ product }: { product: Product }) {
   const img = product.images[0];
+  const alt = product.images[1];
   const soldOut = product.stock !== null && product.stock <= 0;
   const onSale = product.compareAtCents !== null && product.compareAtCents > product.priceCents;
   const off = onSale ? Math.round((1 - product.priceCents / product.compareAtCents!) * 100) : 0;
@@ -16,8 +21,12 @@ export function ProductCard({ product }: { product: Product }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={img.url} alt={img.alt ?? product.name} loading="lazy" />
         ) : (
-          <div className="sf-card-media-empty" style={{ position: "absolute", inset: 0 }}>Sin foto</div>
+          <div className="sf-card-media-empty sf-ph" style={{ position: "absolute", inset: 0 }}>{product.name.slice(0, 1)}</div>
         )}
+        {alt ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="sf-card-alt" src={alt.url} alt="" aria-hidden="true" loading="lazy" />
+        ) : null}
         {soldOut ? <span className="sf-tag">Agotado</span> : onSale && off > 0 ? <span className="sf-tag sf-tag-primary">-{off}%</span> : product.featured ? <span className="sf-tag">Destacado</span> : null}
       </div>
       <div className="sf-card-body">

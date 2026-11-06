@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { TEMPLATES } from "@/lib/theme";
+import { demoUrl } from "@/themes/demo";
 import { signupOpen } from "./actions";
 import { StartForm } from "./start-form";
 
@@ -16,6 +18,8 @@ export default async function StartPage() {
   const user = await getSessionUser();
   if (user) redirect("/");
   const open = await signupOpen();
+  const h = await headers();
+  const requestHost = h.get("x-forwarded-host") ?? h.get("host");
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-ink text-cream">
@@ -51,7 +55,11 @@ export default async function StartPage() {
           <StartForm
             open={open}
             rootDomain={env.rootDomain}
-            templates={TEMPLATES.map((t) => ({ key: t.key, name: t.name, description: t.description, tags: t.tags, colors: t.defaults.colors, display: t.defaults.fonts.display ?? "serif" }))}
+            templates={TEMPLATES.map((t) => ({
+              key: t.key, name: t.name, description: t.description, tags: t.tags, highlights: t.highlights.slice(0, 3),
+              colors: t.defaults.colors, display: t.defaults.fonts.display ?? "serif", body: t.defaults.fonts.body ?? "sans-serif",
+              demoUrl: demoUrl(t.key, requestHost),
+            }))}
           />
         </div>
       </div>

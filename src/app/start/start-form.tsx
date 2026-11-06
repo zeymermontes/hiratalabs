@@ -3,7 +3,15 @@
 import { useActionState, useState } from "react";
 import { startSignup, type StartState } from "./actions";
 
-type Tpl = { key: string; name: string; description: string; tags: string[]; colors: Record<string, string>; display: string };
+type Tpl = {
+  key: string; name: string; description: string; tags: string[]; highlights: string[];
+  colors: Record<string, string>; display: string; body: string; demoUrl: string;
+};
+
+function fontsHref(templates: Tpl[]) {
+  const fams = [...new Set(templates.flatMap((t) => [t.display, t.body]))].filter((f) => /^[A-Za-z0-9 ]+$/.test(f));
+  return `https://fonts.googleapis.com/css2?${fams.map((f) => `family=${f.replace(/ /g, "+")}`).join("&")}&display=swap`;
+}
 
 function slugify(raw: string) {
   return raw.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim()
@@ -75,27 +83,61 @@ export function StartForm({ open, rootDomain, templates }: { open: boolean; root
       </div>
 
       <div className={step === 2 ? "space-y-4" : "hidden"}>
-        <div className="grid gap-2" role="radiogroup" aria-label="Plantilla">
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link rel="stylesheet" href={fontsHref(templates)} />
+        <p className="text-sm text-neutral-600">Elige cómo se verá tu tienda. Después puedes cambiar colores, letras, secciones o la plantilla completa.</p>
+        <div
+          role="radiogroup" aria-label="Plantilla"
+          className="-mx-1 grid max-h-[55vh] min-w-0 gap-2.5 overflow-y-auto overscroll-contain px-1 py-1 sm:max-h-[28rem]"
+        >
           {templates.map((t) => {
             const active = t.key === template;
             return (
-              <button
-                type="button" key={t.key} role="radio" aria-checked={active} onClick={() => setTemplate(t.key)}
-                className={`flex items-center gap-3 rounded-lg border p-2.5 text-left transition ${active ? "border-purple bg-purple-tint" : "border-neutral-200 hover:border-neutral-400"}`}
+              <div
+                key={t.key}
+                className={`min-w-0 overflow-hidden rounded-xl border transition ${active ? "border-purple ring-2 ring-purple/30" : "border-neutral-200 hover:border-neutral-400"}`}
               >
-                <span
-                  className="flex h-12 w-16 shrink-0 flex-col justify-between rounded-md p-1.5"
-                  style={{ background: t.colors.background, color: t.colors.foreground, fontFamily: `'${t.display}', serif` }}
-                  aria-hidden="true"
+                <button
+                  type="button" role="radio" aria-checked={active} onClick={() => setTemplate(t.key)}
+                  className="flex w-full min-w-0 gap-3 p-2.5 text-left focus:outline-none focus-visible:bg-purple-tint"
                 >
-                  <span className="text-[11px] leading-none">{t.name}</span>
-                  <span className="block h-2 w-8 rounded-full" style={{ background: t.colors.primary }} />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold">{t.name}</span>
-                  <span className="block truncate text-xs text-neutral-500">{t.tags.join(" · ")}</span>
-                </span>
-              </button>
+                  <span
+                    className="flex h-20 w-24 shrink-0 flex-col justify-between rounded-lg p-2 sm:w-28"
+                    style={{ background: t.colors.background, color: t.colors.foreground, border: `1px solid ${t.colors.muted}` }}
+                    aria-hidden="true"
+                  >
+                    <span className="truncate text-base leading-none" style={{ fontFamily: `'${t.display}', serif` }}>{t.name}</span>
+                    <span className="block h-1 w-14 rounded-full opacity-40" style={{ background: t.colors.foreground }} />
+                    <span className="flex items-center gap-1">
+                      <span className="block h-3 w-10 rounded-full" style={{ background: t.colors.primary }} />
+                      <span className="block h-3 w-3 rounded-full" style={{ background: t.colors.accent }} />
+                    </span>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="block truncate text-sm font-semibold">{t.name}</span>
+                      {active ? <span className="pill shrink-0 bg-purple text-white">Elegida</span> : null}
+                    </span>
+                    <span className="block truncate text-xs text-neutral-500">{t.tags.join(" · ")}</span>
+                    <span className="mt-1 hidden space-y-0.5 text-xs text-neutral-700 sm:block">
+                      {t.highlights.map((h) => (
+                        <span key={h} className="flex min-w-0 gap-1"><span className="shrink-0 text-lime-dark">✓</span><span className="truncate">{h}</span></span>
+                      ))}
+                    </span>
+                    {t.highlights[0] ? <span className="mt-1 block truncate text-xs text-neutral-700 sm:hidden">✓ {t.highlights[0]}</span> : null}
+                  </span>
+                </button>
+                <div className="flex items-center justify-between gap-2 border-t border-neutral-100 px-2.5 py-1.5">
+                  <span className="min-w-0 truncate text-[11px] text-neutral-500">{t.description}</span>
+                  <a
+                    href={t.demoUrl} target="_blank" rel="noreferrer"
+                    className="shrink-0 text-xs font-semibold text-purple underline-offset-2 hover:underline"
+                    aria-label={`Ver demo de ${t.name} (se abre en otra pestaña)`}
+                  >
+                    Ver demo ↗
+                  </a>
+                </div>
+              </div>
             );
           })}
         </div>

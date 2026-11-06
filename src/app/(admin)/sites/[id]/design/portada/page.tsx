@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { requireSiteAccess } from "@/lib/auth";
-import { listBanners, listCategories, listHomeSections } from "@/modules/catalog/queries";
+import { listBanners } from "@/modules/catalog/queries";
 import { BannersManager } from "./banners-manager";
-import { SectionsManager } from "./sections-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -15,26 +14,19 @@ const toLocal = (d: Date | null) => {
 export default async function PortadaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   await requireSiteAccess(id, { manage: true });
-  const [sections, allBanners, { all: categories }] = await Promise.all([
-    listHomeSections(id, { includeInactive: true }),
-    listBanners(id, undefined, { includeInactive: true }),
-    listCategories(id),
-  ]);
+  const allBanners = await listBanners(id, undefined, { includeInactive: true });
   const now = Date.now();
 
   return (
     <div className="space-y-8">
       <div>
         <Link href={`/sites/${id}/design`} className="text-xs text-neutral-500 hover:text-neutral-800">← Diseño</Link>
-        <h2 className="mt-1 text-sm font-semibold text-neutral-900">Portada y banners</h2>
-        <p className="hint">La portada se arma con secciones en orden. Los banners son las imágenes grandes que usan algunas de ellas.</p>
+        <h2 className="mt-1 text-sm font-semibold text-neutral-900">Banners</h2>
+        <p className="hint">
+          Las imágenes grandes que usan las secciones “Portada principal” (diseño Carrusel de banners) y “Banda de banners”.
+          El orden y los textos de la portada se editan en <Link href={`/sites/${id}/design`} className="font-semibold text-purple hover:underline">Diseño</Link>.
+        </p>
       </div>
-
-      <SectionsManager
-        siteId={id}
-        categories={categories.map((c) => ({ slug: c.slug, name: c.name }))}
-        sections={sections.map((s) => ({ id: s.id, type: s.type, title: s.title ?? "", config: s.config, active: s.active }))}
-      />
 
       <BannersManager
         siteId={id}

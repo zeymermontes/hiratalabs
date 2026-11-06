@@ -368,3 +368,4 @@ export type Signup = typeof signups.$inferSelect;
 export * from "@/modules/catalog/schema";
 export * from "@/modules/orders/schema";
 export * from "@/modules/mcp/schema";
+export * from "@/themes/schema";

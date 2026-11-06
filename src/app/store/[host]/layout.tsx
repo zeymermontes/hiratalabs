@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import { env } from "@/lib/env";
+import { headers } from "next/headers";
 import { blockedPage, maintenancePage, unconfiguredPage } from "@/lib/pages";
 import { getStorefront } from "@/lib/storefront";
-import { getCartCount } from "@/modules/orders/cart";
-import { StoreHeader } from "@/components/storefront/header";
-import { StoreFooter } from "@/components/storefront/footer";
+import { Sections } from "@/components/storefront/theme/render";
+import { PreviewBridge } from "@/components/storefront/theme/preview-bridge";
+import { PREVIEW_HEADER } from "@/themes/preview";
 import "./storefront.css";
+import "./theme.css";
+import "./sections-a.css";
+import "./sections-b.css";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +20,7 @@ export async function generateMetadata({ params }: Omit<Props, "children">): Pro
   if (!ctx) return { title: "Tienda" };
   return {
     title: { default: ctx.config.brandName, template: `%s — ${ctx.config.brandName}` },
-    robots: ctx.site.status === "live" ? { index: true, follow: true } : { index: false, follow: false },
+    robots: ctx.site.status === "live" && !ctx.preview ? { index: true, follow: true } : { index: false, follow: false },
   };
 }
 
@@ -32,45 +35,31 @@ export default async function StoreLayout({ children, params }: Props) {
   const ctx = await getStorefront(host);
 
   if (!ctx) return <Notice html={unconfiguredPage(host)} />;
-  const { site, theme, config } = ctx;
+  const { site, design } = ctx;
 
-  if (site.status === "maintenance" || site.status === "draft") {
-    return <Notice html={maintenancePage(site.maintenanceTitle, site.maintenanceMessage)} />;
-  }
-  if (site.status === "blocked") {
-    return <Notice html={blockedPage(site.maintenanceTitle, site.maintenanceMessage)} />;
+  // El dueño ve su borrador en el editor aunque la tienda aún no esté en línea.
+  if (!ctx.preview) {
+    if (site.status === "maintenance" || site.status === "draft") {
+      return <Notice html={maintenancePage(site.maintenanceTitle, site.maintenanceMessage)} />;
+    }
+    if (site.status === "blocked") {
+      return <Notice html={blockedPage(site.maintenanceTitle, site.maintenanceMessage)} />;
+    }
   }
 
-  const cartCount = ctx.modules.has("orders") ? await getCartCount(site.id).catch(() => 0) : 0;
+  const previewToken = ctx.preview ? (await headers()).get(PREVIEW_HEADER) : null;
 
   return (
-    <div className={`sf sf-${theme.template.key}`} style={theme.cssVars as React.CSSProperties} data-radius={site.theme?.radius ?? theme.template.defaults.radius}>
+    <div className="sf" style={design.cssVars as React.CSSProperties} {...design.rootAttrs}>
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link rel="stylesheet" href={theme.fontsHref} />
+      <link rel="stylesheet" href={design.fontsHref} />
+      <style dangerouslySetInnerHTML={{ __html: design.schemeCss }} />
 
-      {theme.announcement ? (
-        <div className="sf-announce">{theme.announcement}</div>
-      ) : null}
-
-      <StoreHeader
-        brandName={config.brandName}
-        logoUrl={theme.logoUrl}
-        modules={[...ctx.modules]}
-        cartCount={cartCount}
-      />
-
+      <Sections list={design.doc.groups.header} ctx={ctx} zone="header" />
       <main className="sf-main">{children}</main>
+      <Sections list={design.doc.groups.footer} ctx={ctx} zone="footer" />
 
-      <StoreFooter
-        brandName={config.brandName}
-        address={config.address}
-        phone={config.phone}
-        whatsapp={config.whatsapp}
-        email={config.email}
-        socials={config.socials}
-        modules={[...ctx.modules]}
-        poweredBy={config.poweredBy ? { name: env.platformName, href: `https://${env.rootDomain}` } : null}
-      />
+      {previewToken ? <PreviewBridge token={previewToken} /> : null}
     </div>
   );
 }
