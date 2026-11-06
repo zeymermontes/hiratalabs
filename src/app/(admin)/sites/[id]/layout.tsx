@@ -10,6 +10,7 @@ import { siteTabs } from "@/lib/site-tabs";
 import { Tabs } from "@/components/tabs";
 import { KindPill, StatusPill } from "@/components/ui";
 import { StatusControls } from "./status-controls";
+import { SupportBanner, SupportButton } from "./support-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,7 @@ export default async function SiteLayout({
 
   return (
     <>
+      {access.support ? <SupportBanner siteId={site.id} siteName={site.name} /> : null}
       <div className="mb-6">
         <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-800">
           ← {access.isSuperAdmin ? "Todos los sitios" : "Mis sitios"}
@@ -44,7 +46,10 @@ export default async function SiteLayout({
               {host} ↗
             </a>
           </div>
-          {access.canManage ? <StatusControls siteId={site.id} status={site.status} /> : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {access.user.isSuperAdmin && !access.support ? <SupportButton siteId={site.id} /> : null}
+            {access.canManage ? <StatusControls siteId={site.id} status={site.status} /> : null}
+          </div>
         </div>
       </div>
 
