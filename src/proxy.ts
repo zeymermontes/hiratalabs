@@ -1,13 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { siteKindForHost } from "@/lib/site-kind";
 
 /**
- * Host-based routing only. Keep this dependency-free: the proxy runs on the
- * edge runtime, so no database or Node APIs here — the tenant routes do that.
+ * Ruteo por host. En Next 16 el proxy corre en Node.js.
  *
  * Una landing se sirve desde /srv/<host> (archivos estáticos del ZIP). Una
  * tienda se renderiza en /store/<host> (páginas de Next). Para saber cuál es
- * cada host sin tocar la base desde aquí, se consulta /api/kind/<host> una vez
- * y se recuerda un rato en memoria.
+ * cada host se consulta la base (solo la columna kind) y se recuerda un rato
+ * en memoria. Si la consulta falla, el host se trata como landing.
  */
 const ADMIN_HOST = (process.env.ADMIN_HOST ?? "").toLowerCase();
 // Panel de los dueños: mismo app, otro host. Quién entra a cuál lo decide auth.ts.
@@ -29,22 +29,16 @@ function normalize(raw: string | null): string {
     .replace(/:\d+$/, "");
 }
 
-async function kindFor(req: NextRequest, host: string): Promise<Kind> {
+async function kindFor(host: string): Promise<Kind> {
   const hit = KIND_CACHE.get(host);
   if (hit && hit.expires > Date.now()) return hit.kind;
 
   let kind: Kind = "landing";
   try {
-    const url = req.nextUrl.clone();
-    url.pathname = `/api/kind/${host}`;
-    url.search = "";
-    const res = await fetch(url, { headers: { host }, cache: "no-store" });
-    if (res.ok) {
-      const data = (await res.json()) as { kind?: string };
-      if (data.kind === "store") kind = "store";
-    }
-  } catch {
+    if ((await siteKindForHost(host)) === "store") kind = "store";
+  } catch (e) {
     // Si la consulta falla, se trata como landing: es el camino de siempre.
+    console.error(`[proxy] no se pudo saber el tipo de ${host}: ${(e as Error).message}`);
   }
   KIND_CACHE.set(host, { kind, expires: Date.now() + KIND_TTL_MS });
   return kind;
@@ -84,7 +78,7 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const kind = await kindFor(req, host);
+  const kind = await kindFor(host);
   const url = req.nextUrl.clone();
   url.pathname = `/${kind === "store" ? "store" : "srv"}/${host}${pathname}`;
   url.search = search;
