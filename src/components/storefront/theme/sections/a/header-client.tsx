@@ -18,6 +18,8 @@ type Props = {
   /** null cuando la tienda no tiene carrito. */
   cartCount: number | null;
   contact: { phone: string; phoneHref: string; whatsappHref: string };
+  /** Alto del logo en px; null deja el tamaño de cada variante. */
+  logoSize?: number | null;
 };
 
 function Logo({ brand }: { brand: Props["brand"] }) {
@@ -290,6 +292,7 @@ export function HeaderClient(p: Props) {
       data-sticky={p.sticky}
       data-solid={variant === "transparent" ? solid || open || searchOpen : undefined}
       data-open={open}
+      style={p.logoSize ? ({ "--sf-logo-h": `${p.logoSize}px`, "--sf-logo-w": `${p.logoSize * 5}px` } as React.CSSProperties) : undefined}
     >
       <div className="sf-hdr-shell">
         {bar}
