@@ -29,6 +29,11 @@ function normalize(raw: string | null): string {
     .replace(/:\d+$/, "");
 }
 
+/** Supabase guarda la sesión en cookies sb-<proyecto>-auth-token (a veces partida en .0, .1…). */
+function hasSessionCookie(req: NextRequest): boolean {
+  return req.cookies.getAll().some((c) => /^sb-.+-auth-token(\.\d+)?$/.test(c.name) && c.value.length > 0);
+}
+
 async function kindFor(host: string): Promise<Kind> {
   const hit = KIND_CACHE.get(host);
   if (hit && hit.expires > Date.now()) return hit.kind;
@@ -60,6 +65,13 @@ export async function proxy(req: NextRequest) {
     // Never let the tenant renderers be reached directly from the admin host.
     if (pathname.startsWith("/srv/") || pathname.startsWith("/store/")) {
       return new NextResponse("Not found", { status: 404 });
+    }
+    // En el host de dueños, quien llega sin sesión ve la landing del producto
+    // (la URL sigue siendo "/"); con sesión entra directo a su panel.
+    if (APP_HOST !== "" && host === APP_HOST && pathname === "/" && !hasSessionCookie(req)) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/inicio";
+      return NextResponse.rewrite(url);
     }
     return NextResponse.next();
   }

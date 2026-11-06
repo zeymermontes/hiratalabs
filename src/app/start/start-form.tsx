@@ -18,13 +18,13 @@ function slugify(raw: string) {
     .replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 }
 
-export function StartForm({ open, rootDomain, templates }: { open: boolean; rootDomain: string; templates: Tpl[] }) {
+export function StartForm({ open, rootDomain, templates, initialTemplate }: { open: boolean; rootDomain: string; templates: Tpl[]; initialTemplate?: string }) {
   const [state, action, pending] = useActionState<StartState, FormData>(startSignup, {});
   const [step, setStep] = useState<1 | 2>(1);
   const [storeName, setStoreName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
-  const [template, setTemplate] = useState(templates[0]?.key ?? "lumen");
+  const [template, setTemplate] = useState(initialTemplate ?? templates[0]?.key ?? "lumen");
 
   if (state.ok) {
     return (

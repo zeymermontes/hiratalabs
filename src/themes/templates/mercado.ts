@@ -7,6 +7,7 @@ export const mercado: TemplateDef = {
   description: "Cálida y local: letras grandes, botones redondos con rebote, sucursales y WhatsApp al frente.",
   tags: ["panadería", "cafetería", "comida", "retail local"],
   demo: "panaderia",
+  category: "comida",
   highlights: ["Marquesina inclinada", "Menú en pestañas", "Sucursales con horario y mapa"],
   styles: [
     { key: "rojo", name: "Rojo horno" },

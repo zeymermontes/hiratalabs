@@ -1,0 +1,67 @@
+/* Landing del producto (app.hiratalabs.com sin sesión). Marca Hirata Labs:
+   tinta, crema, lima y morado; Bebas Neue para titulares y mono para etiquetas. */
+
+.ld { --ld-ease: cubic-bezier(.2, .7, .1, 1); --ld-spring: cubic-bezier(.34, 1.56, .64, 1); }
+.ld :focus-visible { outline: 2px solid #b7d546; outline-offset: 3px; border-radius: 6px; }
+.ld-light :focus-visible { outline-color: #6641e0; }
+
+/* Cuadrícula sutil del hero */
+.ld-grid-bg {
+  background-image:
+    linear-gradient(rgba(243, 246, 234, .06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(243, 246, 234, .06) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 70% 40%, #000 30%, transparent 75%);
+}
+
+/* Entrada del hero */
+@keyframes ld-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.ld-rise { animation: ld-rise 900ms var(--ld-ease) both; }
+.ld-rise-2 { animation-delay: 120ms; }
+.ld-rise-3 { animation-delay: 240ms; }
+.ld-rise-4 { animation-delay: 360ms; }
+
+/* Marquesina de giros */
+@keyframes ld-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.ld-marquee { display: flex; width: max-content; animation: ld-marquee 40s linear infinite; }
+.ld-marquee:hover { animation-play-state: paused; }
+
+/* Escaparate del hero: la portada se recorre sola y la plantilla cambia con fundido */
+@keyframes ld-pan { 0%, 12% { transform: translateY(0); } 88%, 100% { transform: translateY(calc(-100% + var(--ld-frame-h, 360px))); } }
+.ld-pan { animation: ld-pan 9s var(--ld-ease) infinite alternate; }
+.ld-slide { transition: opacity 700ms ease, transform 900ms var(--ld-ease); }
+.ld-slide[data-on="false"] { opacity: 0; transform: scale(.985); }
+@keyframes ld-float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-10px) rotate(-1deg); } }
+.ld-float { animation: ld-float 6s ease-in-out infinite; }
+
+/* Tarjeta de plantilla: al pasar el cursor, la captura se recorre hacia abajo */
+.ld-shot { transition: transform 6s linear; transform: translateY(0); }
+.ld-card:hover .ld-shot, .ld-card:focus-within .ld-shot { transform: translateY(-66.6%); transition-duration: 7s; }
+.ld-card { transition: transform 400ms var(--ld-ease), box-shadow 400ms var(--ld-ease); }
+.ld-card:hover { transform: translateY(-6px); box-shadow: 0 28px 60px -28px rgba(12, 10, 38, .45); }
+.ld-card .ld-phone { transition: transform 500ms var(--ld-spring); }
+.ld-card:hover .ld-phone { transform: translateY(-8px) rotate(3deg); }
+
+/* Filtros */
+.ld-chip[aria-pressed="true"] { background: #0c0a26; color: #f3f6ea; border-color: #0c0a26; }
+
+/* Aparición al hacer scroll */
+@supports (animation-timeline: view()) {
+  .ld-reveal { animation: ld-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 35%; }
+}
+
+/* Vista previa en diálogo */
+.ld-dialog { padding: 0; border: 0; background: transparent; max-width: min(1100px, calc(100vw - 24px)); width: 100%; max-height: calc(100dvh - 24px); }
+.ld-dialog::backdrop { background: rgba(12, 10, 38, .72); backdrop-filter: blur(4px); }
+.ld-dialog[open] { animation: ld-rise 400ms var(--ld-ease) both; }
+
+/* Preguntas */
+.ld-faq summary { list-style: none; cursor: pointer; }
+.ld-faq summary::-webkit-details-marker { display: none; }
+.ld-faq .ld-plus { transition: transform 300ms var(--ld-ease); }
+.ld-faq[open] .ld-plus { transform: rotate(45deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ld-rise, .ld-marquee, .ld-pan, .ld-float, .ld-reveal, .ld-dialog[open] { animation: none !important; }
+  .ld-shot, .ld-card, .ld-card .ld-phone, .ld-slide { transition: none !important; }
+}

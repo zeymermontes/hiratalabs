@@ -7,6 +7,7 @@ export const pulso: TemplateDef = {
   description: "Energía pura: fondo oscuro, naranja eléctrico, tipografía condensada y brillo al pasar el cursor.",
   tags: ["fitness", "suplementos", "deportes", "gimnasios"],
   demo: "fitness",
+  category: "deporte",
   highlights: ["Producto estrella en grande", "Cómo se usa, paso a paso", "Promoción con cuenta regresiva"],
   styles: [
     { key: "electrico", name: "Eléctrico" },

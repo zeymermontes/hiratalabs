@@ -7,6 +7,7 @@ export const antojo: TemplateDef = {
   description: "Para pedir comida rápido: menú en pestañas, horarios rotando, tiempos de entrega claros y WhatsApp a la mano.",
   tags: ["restaurante", "comida a domicilio", "dark kitchen", "taquería"],
   demo: "restaurante",
+  category: "comida",
   highlights: ["Menú en pestañas", "Horario y tiempos rotando arriba", "Sucursales en lista"],
   styles: [
     { key: "mostaza", name: "Mostaza" },

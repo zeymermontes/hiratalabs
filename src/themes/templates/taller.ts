@@ -7,6 +7,7 @@ export const taller: TemplateDef = {
   description: "Para productos que el cliente arma: pasos claros, tarjetas tipo polaroid y preguntas resueltas.",
   tags: ["fotolibros", "personalizados", "regalos", "impresión de fotos"],
   demo: "fotolibros",
+  category: "hogar",
   highlights: ["Cómo funciona en 3 pasos", "Tarjetas polaroid que se inclinan", "Reseñas corriendo"],
   styles: [
     { key: "fucsia", name: "Fucsia" },

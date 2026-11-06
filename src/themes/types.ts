@@ -119,6 +119,16 @@ export type TemplateStyle = {
   fonts?: Partial<GlobalSettings["fonts"]>;
 };
 
+export const TEMPLATE_CATEGORIES = {
+  moda: "Moda y belleza",
+  comida: "Comida y bebida",
+  hogar: "Hogar, regalos y mascotas",
+  deporte: "Deporte y aventura",
+  catalogo: "Tecnología y catálogos",
+  arte: "Arte y cultura",
+} as const;
+export type TemplateCategory = keyof typeof TEMPLATE_CATEGORIES;
+
 export type TemplateDef = {
   key: string;
   name: string;
@@ -127,6 +137,8 @@ export type TemplateDef = {
   tags: string[];
   /** Industria de la tienda demo (elige el catálogo de ejemplo). */
   demo: string;
+  /** Grupo de giros para filtrar la galería de plantillas. */
+  category: TemplateCategory;
   /** Rasgos que la distinguen, para el selector. */
   highlights: string[];
   styles: TemplateStyle[];

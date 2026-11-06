@@ -7,6 +7,7 @@ export const grid: TemplateDef = {
   description: "Catálogo denso y directo: buscador grande, bordes duros y precios por volumen. Para tiendas con muchos productos.",
   tags: ["imprenta", "papelería", "refacciones", "catálogos grandes"],
   demo: "imprenta",
+  category: "catalogo",
   highlights: ["Buscador al frente", "Mosaico de categorías estrella", "Sombras duras al pasar el cursor"],
   styles: [
     { key: "amarillo", name: "Amarillo" },

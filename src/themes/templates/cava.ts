@@ -7,6 +7,7 @@ export const cava: TemplateDef = {
   description: "Elegante y nocturna: vino profundo y dorado, serif clásica, carta en lista y revelado como telón.",
   tags: ["vinos", "mezcal", "licores", "café de especialidad"],
   demo: "vinos",
+  category: "comida",
   highlights: ["Carta en formato lista", "Cita del productor", "Botones subrayados, sin cajas"],
   styles: [
     { key: "tinto", name: "Tinto" },

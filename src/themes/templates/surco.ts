@@ -7,6 +7,7 @@ export const surco: TemplateDef = {
   description: "Estética de fanzine: papel, tinta risográfica, letras en mayúsculas y tarjetas que se inclinan como estampas.",
   tags: ["vinilos", "libros", "música", "arte gráfico"],
   demo: "vinilos",
+  category: "arte",
   highlights: ["Portada solo con tipografía", "Catálogo denso en 5 columnas", "Textura de papel"],
   styles: [
     { key: "riso", name: "Riso rosa" },

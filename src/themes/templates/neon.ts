@@ -7,6 +7,7 @@ export const neon: TemplateDef = {
   description: "Streetwear sin miedo: tipografía gigante en mayúsculas, verde ácido, cuenta regresiva para tus lanzamientos.",
   tags: ["streetwear", "sneakers", "ropa urbana", "drops"],
   demo: "streetwear",
+  category: "moda",
   highlights: ["Cuenta regresiva del drop", "Letras con contorno corriendo", "Tarjetas que se inclinan en 3D"],
   styles: [
     { key: "acido", name: "Ácido" },
