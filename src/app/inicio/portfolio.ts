@@ -7,5 +7,7 @@ export type PortfolioItem = { name: string; giro: string; summary: string; url: 
 export const PORTFOLIO: PortfolioItem[] = [
   { name: "Hirata Impresión", giro: "Imprenta", summary: "Catálogo de impresión con cotizador y dominio propio.", url: "https://www.hirataimpresion.com", shot: "hirataimpresion" },
   { name: "La Costa Parque Industrial", giro: "Bienes raíces", summary: "Bodegas y lotes industriales con mapa y formulario de contacto.", url: "https://lacosta.hiratalabs.com", shot: "lacosta" },
+  { name: "Élan Studio", giro: "Fitness", summary: "Estudio boutique con reservas de clases, paquetes y coaches.", url: "https://elanstudio.mx", shot: "elanstudio" },
+  { name: "Zaga", giro: "Bienes raíces", summary: "Compra, venta y renta de propiedades en Culiacán.", url: "https://zaga-in.com", shot: "zaga" },
   { name: "GasGar", giro: "Arte", summary: "Lienzos originales y personalizados, galería y encargos.", url: "https://gasgar.hiratalabs.com", shot: "gasgar" },
 ];
