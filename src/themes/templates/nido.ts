@@ -7,6 +7,7 @@ export const nido: TemplateDef = {
   description: "Calma de revista de interiores: serif delgada, tonos tierra, collage de espacios y fotos grandes.",
   tags: ["muebles", "decoración", "hogar", "cerámica"],
   demo: "muebles",
+  category: "hogar",
   highlights: ["Collage de categorías", "Muro de inspiración", "Fotos a todo lo ancho"],
   styles: [
     { key: "terracota", name: "Terracota" },

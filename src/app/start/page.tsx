@@ -14,7 +14,8 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default async function StartPage() {
+export default async function StartPage({ searchParams }: { searchParams: Promise<{ plantilla?: string }> }) {
+  const { plantilla } = await searchParams;
   const user = await getSessionUser();
   if (user) redirect("/");
   const open = await signupOpen();
@@ -53,6 +54,7 @@ export default async function StartPage() {
           </div>
 
           <StartForm
+            initialTemplate={TEMPLATES.some((t) => t.key === plantilla) ? plantilla : undefined}
             open={open}
             rootDomain={env.rootDomain}
             templates={TEMPLATES.map((t) => ({

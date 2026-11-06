@@ -7,6 +7,7 @@ export const petalo: TemplateDef = {
   description: "Romántica y fresca: serif con itálicas, tonos rubor, entregas el mismo día al frente.",
   tags: ["florería", "regalos", "eventos", "detalles"],
   demo: "flores",
+  category: "hogar",
   highlights: ["Horarios de entrega rotando", "Imagen y texto encimados", "Galería de eventos"],
   styles: [
     { key: "rubor", name: "Rubor" },

@@ -7,6 +7,7 @@ export const huella: TemplateDef = {
   description: "Juguetona y amable: formas orgánicas, botones que rebotan y pestañas para perro, gato o lo que tengas.",
   tags: ["mascotas", "veterinaria", "pet shop", "suscripciones"],
   demo: "mascotas",
+  category: "hogar",
   highlights: ["Pestañas por mascota", "Formas orgánicas que se mueven", "Bloque de suscripción"],
   styles: [
     { key: "naranja", name: "Naranja" },

@@ -13,7 +13,8 @@
     "check-db": "node scripts/check-db.mjs",
     "migrate": "node scripts/migrate.mjs",
     "check-themes": "node --experimental-strip-types --import ./scripts/register-loader.mjs scripts/check-themes.mjs",
-    "seed-demos": "node --experimental-strip-types --import ./scripts/register-loader.mjs scripts/seed-demos.mjs"
+    "seed-demos": "node --experimental-strip-types --import ./scripts/register-loader.mjs scripts/seed-demos.mjs",
+    "shoot-templates": "node --experimental-strip-types --import ./scripts/register-loader.mjs scripts/shoot-templates.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

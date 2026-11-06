@@ -7,6 +7,7 @@ export const recreo: TemplateDef = {
   description: "Colores primarios, letras gorditas y botones que saltan. Divertida para chicos y fácil para papás.",
   tags: ["juguetes", "ropa infantil", "didácticos", "fiestas"],
   demo: "juguetes",
+  category: "hogar",
   highlights: ["Mosaico de colores en la portada", "Compra por edad", "Tarjetas tipo polaroid"],
   styles: [
     { key: "sol", name: "Sol" },

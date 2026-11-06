@@ -7,6 +7,7 @@ export const circuito: TemplateDef = {
   description: "Limpia y técnica: mucho blanco, azul eléctrico, especificaciones claras y brillo sutil en cada tarjeta.",
   tags: ["tecnología", "gadgets", "electrónica", "accesorios"],
   demo: "tecnologia",
+  category: "catalogo",
   highlights: ["Producto estrella con especificaciones", "Categorías en círculos", "Video del producto"],
   styles: [
     { key: "azul", name: "Azul" },

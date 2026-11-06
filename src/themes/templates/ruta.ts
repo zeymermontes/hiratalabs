@@ -7,6 +7,7 @@ export const ruta: TemplateDef = {
   description: "Aventura al aire libre: tonos de montaña, letras anchas, fotos a pantalla completa y garantías que dan confianza.",
   tags: ["outdoor", "camping", "ciclismo", "viajes"],
   demo: "outdoor",
+  category: "deporte",
   highlights: ["Portada a pantalla completa", "Imagen de fondo con historia", "Garantías en tarjetas"],
   styles: [
     { key: "bosque", name: "Bosque" },

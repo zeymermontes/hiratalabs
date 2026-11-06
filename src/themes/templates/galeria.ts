@@ -7,6 +7,7 @@ export const galeria: TemplateDef = {
   description: "Oscura y silenciosa: la imagen primero, muro tipo museo y menú a pantalla completa.",
   tags: ["arte", "fotografía", "joyería", "piezas únicas"],
   demo: "arte",
+  category: "arte",
   highlights: ["Foto a pantalla completa", "Muro de obra con fundidos", "Menú a pantalla completa"],
   styles: [
     { key: "carbon", name: "Carbón" },

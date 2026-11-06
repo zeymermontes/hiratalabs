@@ -7,6 +7,7 @@ export const lumen: TemplateDef = {
   description: "Editorial y espaciosa: serif en los títulos, mucho aire y fotos que se revelan como un telón.",
   tags: ["plantas", "cosmética", "artesanía", "moda lenta"],
   demo: "plantas",
+  category: "moda",
   highlights: ["Foto en arco que se revela", "Segunda foto al pasar el cursor", "Historias con imagen y texto"],
   styles: [
     { key: "bosque", name: "Bosque" },

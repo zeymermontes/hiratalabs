@@ -7,6 +7,7 @@ export const botica: TemplateDef = {
   description: "Skincare con aire de laboratorio amable: pasteles suaves, ingredientes al frente y rutina por tipo de piel.",
   tags: ["skincare", "cosmética", "farmacia natural", "bienestar"],
   demo: "skincare",
+  category: "moda",
   highlights: ["Rutina por tipo de piel en pestañas", "Ingredientes explicados", "Desenfoque suave al aparecer"],
   styles: [
     { key: "lavanda", name: "Lavanda" },

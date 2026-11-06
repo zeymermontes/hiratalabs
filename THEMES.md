@@ -29,6 +29,7 @@ ThemeDoc
 | Estilos de las secciones | `src/app/store/[host]/sections-a.css`, `sections-b.css` |
 | Editor visual del panel | `src/app/(admin)/sites/[id]/design/` |
 | Catálogo de las tiendas demo | `src/themes/demo-catalog.ts` + `scripts/seed-demos.mjs` |
+| Landing del producto (app.hiratalabs.com sin sesión) y sus capturas | `src/app/inicio/`, `public/plantillas/`, `scripts/shoot-templates.mjs` |
 
 ## Agregar una plantilla (lo semanal)
 
@@ -44,6 +45,9 @@ ThemeDoc
 4. `npm run seed-demos -- <clave>`: crea `demo-<clave>.<dominio>` con catálogo y
    fotos de Pixabay (necesita `PIXABAY_API_KEY`; también acepta `PEXELS_API_KEY`).
 5. Revísala en celular y escritorio (la demo y el editor tienen selector de dispositivo).
+6. `npm run shoot-templates -- <clave>` (con la demo ya en producción): genera sus capturas
+   en `public/plantillas/` para la landing de `app.hiratalabs.com` (galería de plantillas).
+   Sube las imágenes junto con el código. La categoría (`category`) decide en qué filtro aparece.
 
 Que se sienta única viene de **combinar**: variante de encabezado + variante de
 portada + tarjeta + movimiento + tipografía + esquemas. Cambiar solo colores no
