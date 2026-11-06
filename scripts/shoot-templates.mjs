@@ -5,6 +5,7 @@
 //   npm run shoot-templates -- neon lumen      # solo esas
 //   BASE=http://{slug}.localhost:3000 npm run shoot-templates
 //   npm run shoot-templates -- --portafolio    # sitios a la medida (public/portafolio/)
+//   WAIT=8000 npm run shoot-templates …         # espera más antes de capturar (sitios lentos)
 import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import sharp from "sharp";
@@ -54,7 +55,7 @@ async function shoot(url, width, height, dpr, mobile, clipHeight) {
     awaitPromise: true,
     expression: `(async () => { for (let y = 0; y < ${clipHeight}; y += 400) { scrollTo(0, y); await new Promise((r) => setTimeout(r, 150)); } scrollTo(0, 0); })()`,
   });
-  await new Promise((r) => setTimeout(r, 2500));
+  await new Promise((r) => setTimeout(r, process.env.WAIT ? Number(process.env.WAIT) : 2500));
   const shot = await send("Page.captureScreenshot", {
     format: "png", captureBeyondViewport: true, clip: { x: 0, y: 0, width, height: clipHeight, scale: 1 },
   });
