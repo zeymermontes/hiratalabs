@@ -133,3 +133,9 @@
 @media (prefers-reduced-motion: reduce) {
   .sf *, .sf *::before, .sf *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }
+
+/* Los botones y la etiqueta de la plataforma son enlaces: `.sf a { color: inherit }`
+   les ganaba en especificidad y dejaba texto oscuro sobre fondo oscuro. */
+.sf :is(a, button).sf-btn-primary { color: var(--sf-primary-fg); }
+.sf :is(a, button).sf-btn-outline { color: var(--sf-fg); }
+.sf a.sf-powered { color: #f3f6ea; }

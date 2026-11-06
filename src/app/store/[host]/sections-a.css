@@ -376,6 +376,8 @@ img.sf-hero-img { animation: sf-a-kenburns 2400ms var(--sf-ease) both; }
 .sf-hero-ed-title {
   margin: .25em 0 0; font-size: calc(clamp(46px, 10.5vw, 168px) * var(--sf-scale, 1)); line-height: .92; letter-spacing: -.035em;
   overflow-wrap: break-word; hyphens: auto;
+  /* La foto sube bajo el titular: el texto siempre queda encima. */
+  position: relative; z-index: 2;
 }
 .sf-hero-ed-title em { color: var(--sf-primary); font-weight: inherit; padding-right: .04em; }
 .sf-hero2[data-align="center"] .sf-hero-ed-title { text-align: center; }
