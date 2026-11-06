@@ -134,7 +134,7 @@ function TypeHero({ d, uid }: { d: HeroData; uid: string }) {
     <section className="sf-hero2 sf-hero--type" data-height={d.height} data-align={d.align}>
       <div className="sf-wrap">
         {d.eyebrow ? <p className="sf-eyebrow sf-hero-eyebrow">{d.eyebrow}</p> : null}
-        <h1 className="sf-hero-type-title">
+        <h1 className="sf-hero-type-title" style={{ "--sf-type-chars": longestWord(d.title) } as React.CSSProperties}>
           {solid ? <span className="sf-hero-type-solid">{solid}</span> : null}
           <span className="sf-hero-type-outline">{outline}</span>
         </h1>
@@ -246,4 +246,9 @@ export async function Hero({ ctx, section }: SectionProps) {
   if (variant === "editorial") return <Editorial d={d} />;
   if (variant === "type") return <TypeHero d={d} uid={section.id.replace(/[^a-zA-Z0-9_-]/g, "")} />;
   return <Split d={d} />;
+}
+
+/** Letras de la palabra más larga: el titular gigante se encoge para que ninguna palabra se parta. */
+function longestWord(text: string): number {
+  return Math.max(4, ...text.split(/\s+/).map((w) => w.length));
 }

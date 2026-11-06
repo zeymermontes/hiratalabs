@@ -57,6 +57,8 @@
   font-size: calc(22px * var(--sf-scale, 1)); letter-spacing: -.02em; line-height: 1; white-space: nowrap;
 }
 .sf-hdr-logo span { overflow: hidden; text-overflow: ellipsis; }
+/* En celular las fuentes anchas (Syne, Archivo) no caben junto a los íconos. */
+@media (max-width: 480px) { .sf-hdr-logo { font-size: min(calc(22px * var(--sf-scale, 1)), 19px); letter-spacing: -.03em; } }
 .sf-hdr-logo img { height: 34px; width: auto; max-width: 160px; object-fit: contain; display: block; }
 
 .sf-hdr-nav { display: none; }
@@ -365,8 +367,8 @@ img.sf-hero-img { animation: sf-a-kenburns 2400ms var(--sf-ease) both; }
 .sf-hero--fullbleed[data-align="center"] .sf-hero-fb-inner { align-items: center; justify-content: center; }
 .sf-hero--fullbleed .sf-hero-title { font-size: calc(clamp(44px, 8.4vw, 132px) * var(--sf-scale, 1)); max-width: 14ch; }
 .sf-hero--fullbleed .sf-hero-sub { opacity: .92; }
-.sf-hero--fullbleed .sf-hero-btn-inv { color: #fff; border-color: #fff; }
-.sf-hero--fullbleed .sf-hero-btn-inv:hover { background: #fff; color: #111; }
+.sf .sf-hero--fullbleed :is(a, button).sf-hero-btn-inv { color: #fff; border-color: #fff; }
+.sf .sf-hero--fullbleed :is(a, button).sf-hero-btn-inv:hover { background: #fff; color: #111; }
 .sf-hero--fullbleed[data-has-image="true"] .sf-hero-title em { color: inherit; }
 
 /* editorial */
@@ -394,8 +396,11 @@ img.sf-hero-img { animation: sf-a-kenburns 2400ms var(--sf-ease) both; }
 .sf-hero--type { padding: clamp(56px, 10vw, 160px) 0 clamp(40px, 6vw, 96px); overflow: hidden; }
 .sf-hero-type-title {
   display: flex; flex-direction: column; margin: .1em 0 0;
-  font-size: calc(clamp(54px, 15vw, 240px) * var(--sf-scale, 1)); line-height: .86; letter-spacing: -.045em;
-  overflow-wrap: anywhere;
+  /* Lo más grande posible sin que la palabra más larga se salga del renglón (hasta ~1.2em por letra en fuentes anchas). */
+  font-size: min(calc(clamp(48px, 14vw, 200px) * var(--sf-scale, 1)), calc((min(100vw, 1280px) - 96px) / (var(--sf-type-chars, 6) * 1.2)));
+  line-height: .86; letter-spacing: -.045em;
+  /* Solo parte una palabra si de verdad no cabe en el renglón. */
+  overflow-wrap: break-word;
 }
 .sf-hero-type-outline {
   color: transparent; -webkit-text-stroke: max(1px, .02em) var(--sf-fg);

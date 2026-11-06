@@ -16,7 +16,7 @@ export type DemoCatalog = {
 
 export const DEMO_CATALOG: Record<string, DemoCatalog> = {
   plantas: {
-    brand: "Verde Vivo", tagline: "Plantas que se quedan contigo.", scene: "indoor plants living room",
+    brand: "Verde Vivo", tagline: "Plantas que se quedan contigo.", scene: "houseplants",
     categories: [{ name: "Interior", query: "monstera plant pot" }, { name: "Suculentas", query: "succulent pot" }, { name: "Macetas", query: "terracotta pot" }],
     products: [
       ["Monstera deliciosa", 549, 0, "Hojas grandes y abiertas. Luz indirecta, riego semanal."], ["Pothos dorado", 289, 0, "La más fácil de cuidar; crece colgante."],
@@ -26,7 +26,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   imprenta: {
-    brand: "Imprenta Norte", tagline: "Impresión rápida, precios claros.", scene: "printing press print shop",
+    brand: "Imprenta Norte", tagline: "Impresión rápida, precios claros.", scene: "print shop",
     categories: [{ name: "Tarjetas", query: "business cards" }, { name: "Gran formato", query: "large format printing banner" }, { name: "Papelería", query: "stationery letterhead" }, { name: "Sellos", query: "rubber stamp" }],
     products: [
       ["Tarjetas mate 9×5 cm (100)", 290, 0, "Couché 300 g, impresión a color por ambos lados."], ["Tarjetas con barniz (100)", 450, 0, "Barniz a registro para resaltar tu logo."],
@@ -36,7 +36,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   panaderia: {
-    brand: "La Dona Dorada", tagline: "Recién horneado, cada mañana.", scene: "bakery bread display",
+    brand: "La Dona Dorada", tagline: "Recién horneado, cada mañana.", scene: "bakery pastries",
     categories: [{ name: "Donas", query: "glazed donuts" }, { name: "Pan dulce", query: "pastry bakery" }, { name: "Pasteles", query: "cake slice" }, { name: "Café", query: "coffee cup latte" }],
     products: [
       ["Dona glaseada", 22, 0, "Masa suave y glaseado de vainilla."], ["Caja de 12 donas", 240, 0, "Surtido de la casa.", 264], ["Dona de chocolate", 26, 0, "Cubierta de chocolate amargo."],
@@ -45,7 +45,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   arte: {
-    brand: "Óxido", tagline: "Obra original con certificado.", scene: "art gallery painting wall",
+    brand: "Óxido", tagline: "Obra original con certificado.", scene: "art studio painting",
     categories: [{ name: "Pintura", query: "abstract oil painting" }, { name: "Gráfica", query: "art print framed" }, { name: "Joyería", query: "handmade silver jewelry" }],
     products: [
       ["Marea baja, VII", 18500, 0, "Óleo sobre lino, 120 × 150 cm. Pieza única."], ["Bruma", 12400, 0, "Óleo sobre lino, 90 × 120 cm."], ["Sal", 9800, 0, "Óleo sobre tela, 80 × 100 cm."],
@@ -54,7 +54,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   fotolibros: {
-    brand: "Momentos", tagline: "Tus fotos merecen salir del celular.", scene: "photo album family memories",
+    brand: "Momentos", tagline: "Tus fotos merecen salir del celular.", scene: "photo album",
     categories: [{ name: "Fotolibros", query: "photo book" }, { name: "Impresiones", query: "polaroid photos" }, { name: "Calendarios", query: "wall calendar photos" }],
     products: [
       ["Fotolibro 20 × 20 cm", 690, 0, "24 páginas, portada rígida."], ["Fotolibro 30 × 30 cm", 1190, 0, "40 páginas, portada de tela.", 1390], ["Álbum de boda", 2490, 0, "60 páginas, papel fotográfico."],
@@ -63,7 +63,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   streetwear: {
-    brand: "KAOS/MX", tagline: "Hecho en la calle. Edición limitada.", scene: "streetwear urban fashion",
+    brand: "KAOS/MX", tagline: "Hecho en la calle. Edición limitada.", scene: "streetwear",
     categories: [{ name: "Sneakers", query: "sneakers" }, { name: "Playeras", query: "oversized t-shirt streetwear" }, { name: "Sudaderas", query: "hoodie streetwear" }],
     products: [
       ["Runner Ácido", 2890, 0, "Drop 07. Suela de espuma y malla transpirable."], ["Low Concreto", 2490, 0, "Piel gris con costuras contrastantes.", 2790], ["High Noche", 3190, 0, "Bota alta en negro total."],
@@ -72,7 +72,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   mascotas: {
-    brand: "Huella", tagline: "Todo lo que tu mascota ama.", scene: "happy dog home",
+    brand: "Huella", tagline: "Todo lo que tu mascota ama.", scene: "happy dog",
     categories: [{ name: "Perro", query: "dog toy" }, { name: "Gato", query: "cat toy" }, { name: "Comida", query: "pet food bowl" }],
     products: [
       ["Pelota que rebota", 149, 0, "Hule natural, flota en el agua."], ["Correa reflejante", 299, 0, "Para paseos de noche."], ["Cama ortopédica", 1290, 0, "Espuma viscoelástica, funda lavable.", 1490],
@@ -81,7 +81,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   fitness: {
-    brand: "Pulso", tagline: "Entrena más. Recupera mejor.", scene: "gym workout athlete",
+    brand: "Pulso", tagline: "Entrena más. Recupera mejor.", scene: "gym workout",
     categories: [{ name: "Proteínas", query: "protein powder" }, { name: "Pre-entreno", query: "supplement shaker gym" }, { name: "Accesorios", query: "dumbbells gym equipment" }],
     products: [
       ["Proteína whey chocolate 2 lb", 790, 0, "24 g de proteína por porción."], ["Proteína vegana vainilla", 890, 0, "Chícharo y arroz, sin lácteos."], ["Creatina monohidratada 300 g", 590, 1, "Micronizada, sin sabor.", 690],
@@ -90,7 +90,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   flores: {
-    brand: "Pétalo", tagline: "Dilo con flores frescas.", scene: "flower shop bouquet",
+    brand: "Pétalo", tagline: "Dilo con flores frescas.", scene: "flower bouquet",
     categories: [{ name: "Ramos", query: "flower bouquet" }, { name: "Arreglos", query: "flower arrangement vase" }, { name: "Plantas", query: "orchid pot" }],
     products: [
       ["Ramo de rosas rojas", 890, 0, "12 rosas con follaje de temporada."], ["Ramo pastel", 750, 0, "Rosas, claveles y lisianthus."], ["Ramo de girasoles", 690, 0, "Seis girasoles envueltos en papel kraft.", 790],
@@ -99,7 +99,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   vinos: {
-    brand: "Cava Nocturna", tagline: "Vinos de pequeños productores.", scene: "wine cellar bottles",
+    brand: "Cava Nocturna", tagline: "Vinos de pequeños productores.", scene: "wine cellar",
     categories: [{ name: "Tintos", query: "red wine bottle" }, { name: "Blancos", query: "white wine glass" }, { name: "Mezcal", query: "mezcal bottle" }],
     products: [
       ["Tinto Valle de Guadalupe", 690, 0, "Nebbiolo y tempranillo. Frutos negros y especias."], ["Gran reserva", 1290, 0, "18 meses en barrica de roble.", 1490], ["Malbec joven", 420, 0, "Fresco y frutal."],
@@ -108,7 +108,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   tecnologia: {
-    brand: "Circuito", tagline: "Tecnología original con garantía.", scene: "tech gadgets desk setup",
+    brand: "Circuito", tagline: "Tecnología original con garantía.", scene: "headphones",
     categories: [{ name: "Audio", query: "wireless headphones" }, { name: "Accesorios", query: "phone charger cable" }, { name: "Smart home", query: "smart speaker" }],
     products: [
       ["Audífonos con cancelación de ruido", 2890, 0, "40 horas de batería y carga rápida.", 3290], ["Audífonos inalámbricos", 1290, 0, "Estuche de carga y resistencia al agua."], ["Bocina portátil", 990, 0, "Sonido 360° y 12 horas de batería."],
@@ -117,7 +117,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   juguetes: {
-    brand: "Recreo", tagline: "¡A jugar!", scene: "colorful toys kids playroom",
+    brand: "Recreo", tagline: "¡A jugar!", scene: "toys",
     categories: [{ name: "Bebés", query: "baby wooden toy" }, { name: "Construcción", query: "wooden building blocks" }, { name: "Juegos de mesa", query: "board game family" }],
     products: [
       ["Sonaja de madera", 189, 0, "Madera de haya, pintura no tóxica."], ["Gimnasio para bebé", 990, 0, "Con cinco juguetes colgantes.", 1190],
@@ -126,7 +126,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   muebles: {
-    brand: "Nido", tagline: "Espacios que se sienten como casa.", scene: "scandinavian living room interior",
+    brand: "Nido", tagline: "Espacios que se sienten como casa.", scene: "living room interior",
     categories: [{ name: "Sala", query: "armchair interior" }, { name: "Comedor", query: "wooden dining table" }, { name: "Decoración", query: "ceramic vase decor" }],
     products: [
       ["Sillón lounge de nogal", 12900, 0, "Madera maciza y tapiz de lino.", 14500], ["Mesa de centro redonda", 5900, 0, "Encino natural, 80 cm."], ["Lámpara de pie", 3400, 0, "Pantalla de lino y base de latón."],
@@ -135,7 +135,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   skincare: {
-    brand: "Botica", tagline: "Menos pasos, mejor piel.", scene: "skincare products minimal",
+    brand: "Botica", tagline: "Menos pasos, mejor piel.", scene: "skincare",
     categories: [{ name: "Limpiadores", query: "facial cleanser bottle" }, { name: "Sueros", query: "serum dropper bottle" }, { name: "Hidratantes", query: "face cream jar" }],
     products: [
       ["Limpiador en gel", 390, 0, "Para piel mixta a grasa."], ["Bálsamo desmaquillante", 450, 0, "Se convierte en aceite y se enjuaga fácil."],
@@ -144,7 +144,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   vinilos: {
-    brand: "Surco", tagline: "Ponle play a lo raro.", scene: "record store vinyl shelves",
+    brand: "Surco", tagline: "Ponle play a lo raro.", scene: "vinyl records",
     categories: [{ name: "Vinilos", query: "vinyl record" }, { name: "Libros", query: "music books stack" }, { name: "Tornamesas", query: "turntable record player" }],
     products: [
       ["Cumbia rebajada (LP)", 690, 0, "Edición de 500 copias, vinil de color."], ["Jazz mexicano 1970 (LP)", 890, 0, "Reedición remasterizada."], ["Post-punk local (EP)", 420, 0, "Siete pulgadas."],
@@ -153,7 +153,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   restaurante: {
-    brand: "Antojo", tagline: "Se te antojó, te llega.", scene: "mexican food tacos table",
+    brand: "Antojo", tagline: "Se te antojó, te llega.", scene: "tacos",
     categories: [{ name: "Tacos", query: "tacos" }, { name: "Platos fuertes", query: "mexican dish plate" }, { name: "Bebidas", query: "agua fresca drink" }],
     products: [
       ["Orden de tacos al pastor", 95, 0, "Cinco tacos con piña, cebolla y cilantro."], ["Orden de tacos de birria", 120, 0, "Con consomé para remojar."], ["Gringa", 85, 0, "Tortilla de harina, queso y pastor."],
@@ -162,7 +162,7 @@ export const DEMO_CATALOG: Record<string, DemoCatalog> = {
     ],
   },
   outdoor: {
-    brand: "Ruta", tagline: "Más lejos, más ligero.", scene: "mountain hiking trail",
+    brand: "Ruta", tagline: "Más lejos, más ligero.", scene: "mountain hiking",
     categories: [{ name: "Campismo", query: "camping tent" }, { name: "Mochilas", query: "hiking backpack" }, { name: "Ropa", query: "outdoor jacket hiking" }],
     products: [
       ["Tienda de campaña 2 personas", 3490, 0, "1.9 kg, doble pared, columna de agua 3000 mm.", 3990], ["Bolsa de dormir 0 °C", 1890, 0, "Relleno sintético, compresible."], ["Estufa compacta", 790, 0, "Encendido piezoeléctrico."],

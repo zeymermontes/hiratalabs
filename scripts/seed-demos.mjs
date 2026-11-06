@@ -46,10 +46,16 @@ async function search(query, count, orientation) {
     u.searchParams.set("safesearch", "true");
     u.searchParams.set("per_page", String(Math.max(3, Math.min(count, 200))));
     u.searchParams.set("orientation", orientation === "landscape" ? "horizontal" : "vertical");
-    const res = await fetch(u);
-    if (!res.ok) { console.warn(`   ! Pixabay respondió ${res.status} para "${query}"`); return []; }
-    const data = await res.json();
-    return (data.hits ?? []).slice(0, count).map((h) => ({ src: h.largeImageURL, alt: h.tags }));
+    // Primero las fotos elegidas por los editores de Pixabay (mejor calidad); si no alcanzan, las populares.
+    const hits = [];
+    for (const editors of ["true", "false"]) {
+      u.searchParams.set("editors_choice", editors);
+      const res = await fetch(u);
+      if (!res.ok) { console.warn(`   ! Pixabay respondió ${res.status} para "${query}"`); break; }
+      for (const h of (await res.json()).hits ?? []) if (!hits.some((x) => x.id === h.id)) hits.push(h);
+      if (hits.length >= count) break;
+    }
+    return hits.slice(0, count).map((h) => ({ src: h.largeImageURL, alt: h.tags }));
   }
   const u = new URL("https://api.pexels.com/v1/search");
   u.searchParams.set("query", query);
