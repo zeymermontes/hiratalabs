@@ -138,4 +138,9 @@
    les ganaba en especificidad y dejaba texto oscuro sobre fondo oscuro. */
 .sf :is(a, button).sf-btn-primary { color: var(--sf-primary-fg); }
 .sf :is(a, button).sf-btn-outline { color: var(--sf-fg); }
+/* …y con la misma fuerza en hover: sin esto el fondo pasaba a --sf-fg y el texto
+   se quedaba en --sf-fg (texto invisible al pasar el cursor). */
+.sf :is(a, button).sf-btn-outline:hover { color: var(--sf-bg); }
+.sf :is(a, button).sf-it-btn-invert { color: var(--sf-fg); }
+.sf :is(a, button).sf-it-btn-invert:hover { color: var(--sf-primary-fg); }
 .sf a.sf-powered { color: #f3f6ea; }
