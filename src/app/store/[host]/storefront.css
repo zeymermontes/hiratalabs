@@ -284,3 +284,16 @@
     .sf-reveal { animation: sf-rise 500ms ease-out both; }
   }
 }
+
+/* Esqueleto de carga (loading.tsx): aparece al instante al navegar. */
+.sf-skel { padding-top: 40px; padding-bottom: 64px; }
+.sf-skel-line { height: 14px; border-radius: 6px; background: var(--sf-muted); margin-top: 10px; }
+.sf-skel-title { height: 36px; width: min(420px, 70%); margin-top: 0; }
+.sf-skel-sub { width: min(280px, 50%); margin-bottom: 32px; }
+.sf-skel-short { width: 40%; }
+.sf-skel-grid { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 768px) { .sf-skel-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; } }
+.sf-skel-media { aspect-ratio: 1; border-radius: var(--sf-radius, 8px); background: var(--sf-muted); }
+.sf-skel :is(.sf-skel-line, .sf-skel-media) { animation: sf-skel-pulse 1.2s ease-in-out infinite; }
+@keyframes sf-skel-pulse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .sf-skel :is(.sf-skel-line, .sf-skel-media) { animation: none; } }

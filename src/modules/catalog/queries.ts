@@ -4,6 +4,7 @@
  * panel; la autorización la hace quien llama (requireSiteAccess o el host).
  */
 import { and, asc, count, desc, eq, gt, ilike, inArray, isNull, lte, gte, or } from "drizzle-orm";
+import { cache } from "react";
 import { db } from "@/lib/db";
 import {
   banners, categories, customizationFields, productCategories, products, productVariants,
@@ -88,20 +89,25 @@ export function descendantIds(rootId: string, all: Pick<Category, "id" | "parent
   return out;
 }
 
-export async function listCategories(siteId: string): Promise<{ all: Category[]; tree: CategoryNode[]; header: Category[] }> {
+/**
+ * Las categorías de una tienda. Se memoriza por request (React cache): en una
+ * página de la tienda la piden el encabezado, la portada, el catálogo y los
+ * filtros, y con esto la base se consulta una sola vez.
+ */
+export const listCategories = cache(async (siteId: string): Promise<{ all: Category[]; tree: CategoryNode[]; header: Category[] }> => {
   const all = await db.select().from(categories)
     .where(eq(categories.siteId, siteId))
     .orderBy(asc(categories.sortOrder), asc(categories.name));
   const tree = buildCategoryTree(all);
   const header = tree.filter((c) => c.showInHeader);
   return { all, tree, header };
-}
+});
 
-export async function getCategoryBySlug(siteId: string, slug: string): Promise<Category | null> {
-  const [row] = await db.select().from(categories)
-    .where(and(eq(categories.siteId, siteId), eq(categories.slug, slug)));
-  return row ?? null;
-}
+/** Sale de listCategories: misma consulta memorizada, sin otro viaje a la base. */
+export const getCategoryBySlug = cache(async (siteId: string, slug: string): Promise<Category | null> => {
+  const { all } = await listCategories(siteId);
+  return all.find((c) => c.slug === slug) ?? null;
+});
 
 /* ---------------------------------------------------------------- productos */
 
@@ -118,10 +124,9 @@ export async function listProducts(siteId: string, opts: ListProductsOpts = {}):
     where.push(or(ilike(products.name, term), ilike(products.sku, term), ilike(products.description, term))!);
   }
   if (opts.categorySlug) {
-    const cat = await getCategoryBySlug(siteId, opts.categorySlug);
+    const { all } = await listCategories(siteId);
+    const cat = all.find((c) => c.slug === opts.categorySlug);
     if (!cat) return { items: [], total: 0, limit, offset };
-    const all = await db.select({ id: categories.id, parentId: categories.parentId }).from(categories)
-      .where(eq(categories.siteId, siteId));
     const ids = descendantIds(cat.id, all);
     const links = await db.select({ productId: productCategories.productId }).from(productCategories)
       .where(inArray(productCategories.categoryId, ids));
