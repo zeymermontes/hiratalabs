@@ -154,7 +154,7 @@
 .sf-hdr-util-nav a { min-height: 36px; display: inline-flex; align-items: center; opacity: .8; }
 .sf-hdr-util-nav a:hover { opacity: 1; }
 .sf-hdr-bar--search { flex-wrap: wrap; row-gap: 0; }
-.sf-hdr-bigsearch { order: 10; flex: 1 0 100%; padding-bottom: 12px; }
+.sf-hdr-bigsearch { order: 10; flex: 1 0 100%; min-width: 0; padding-bottom: 12px; }
 .sf-hdr-grow { flex: 1; }
 @media (min-width: 768px) {
   .sf-hdr-bar--search { flex-wrap: nowrap; min-height: 84px; }
@@ -175,7 +175,8 @@
 }
 .sf-hdr-search:focus-within { border-color: var(--sf-fg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sf-primary) 25%, transparent); }
 .sf-hdr-search svg { opacity: .55; flex: none; }
-.sf-hdr-search input { flex: 1; min-width: 0; min-height: 42px; border: 0; background: transparent; color: inherit; font: inherit; font-size: 16px; outline: none; }
+/* width: 100% evita que el ancho propio del input (≈20 letras) ensanche la página en celulares chicos o con letra grande. */
+.sf-hdr-search input { flex: 1; width: 100%; min-width: 0; min-height: 42px; border: 0; background: transparent; color: inherit; font: inherit; font-size: 16px; outline: none; }
 .sf-hdr-search input::placeholder { color: inherit; opacity: .5; }
 .sf-hdr-search input::-webkit-search-cancel-button { display: none; }
 .sf-hdr-search-go {
